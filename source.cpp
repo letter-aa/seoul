@@ -19,7 +19,12 @@ map<string, string> strv;
 map<string, int> intv;
 map<string, bool> boolv;
 void ok(string input,string pre) {
-	cout << "\033[H" << pre << input;
+	COORD c;
+	c.X = 0;
+	c.Y = 0;
+
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
+	cout << pre << input;
 }
 int woc() {
 	CONSOLE_SCREEN_BUFFER_INFO c;
