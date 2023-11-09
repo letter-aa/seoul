@@ -9,6 +9,7 @@
 #define RIGHT_ARROW 77
 #define UP_ARROW 72
 #define DOWN_ARROW 80
+int line = 0;
 //start at pre
 using namespace std;
 vector<string> funcs =
@@ -18,10 +19,10 @@ vector<string> funcs =
 map<string, string> strv;
 map<string, int> intv;
 map<string, bool> boolv;
-void ok(string input,string pre) {
+void ok(string input,string pre, int line) {
 	COORD c;
 	c.X = 0;
-	c.Y = 0;
+	c.Y = line;
 
 	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
 	cout << pre << input;
@@ -123,6 +124,11 @@ namespace stringX {
 	std::string type_t(string pre) {
 		cout << pre;
 		string input;
+		/*
+		for (int i = 0; i < line; i++) {
+			input.append("\n");
+			cout << "\n";
+		}*/
 		int rowPos = 0;
 		int linePos = 0;
 		//13 enter?
@@ -179,12 +185,12 @@ namespace stringX {
 				else {
 					if (rowPos == input.size()) {
 						input = input + (char)i;
-						ok(input, pre);
+						ok(input, pre, line);
 						rowPos = rowPos + 1;
 					}
 					else {
 						input = input.substr(0, rowPos - 1) + (char)i + input.substr(rowPos - 1);
-						ok(input, pre);
+						ok(input, pre, line);
 						for (int i = 0; i < input.size() - rowPos; i++) {
 							cout << "\b";
 						}
@@ -223,12 +229,12 @@ namespace stringX {
 				default:
 					if (rowPos == input.size()) {
 						input = input + (char)i;
-						ok(input,pre);
+						ok(input,pre, line);
 						rowPos = rowPos + 1;
 					}
 					else {
 						input = input.substr(0, rowPos - 1) + (char)i + input.substr(rowPos - 1);
-						ok(input,pre);
+						ok(input,pre, line);
 						for (int i = 0; i < input.size() - rowPos; i++) {
 							cout << "\b";
 						}
@@ -236,6 +242,10 @@ namespace stringX {
 					}
 				}
 			}
+		}
+		line++;
+		for (int i = 0; i < numOfStr(input, "\n"); i++) {
+			line++;
 		}
 		return input;
 	}
@@ -305,12 +315,17 @@ void compile(string data) {
 }
 int main()
 {
-	string input = stringX::type_t(">> ");
-	cout << endl;
-	vector<string> ans;
-	stringX::splitString(input, ans, "\n");
-	for (auto data : ans) {
-		compile(data);
+	string input = "";
+	int inc = 0;
+	while (true) {
+		input = stringX::type_t(">> ");
+		cout << endl;
+		vector<string> ans;
+		stringX::splitString(input, ans, "\n");
+		for (auto data : ans) {
+			compile(data);
+		}
+		inc++;
 	}
 	/*
 	if (stringX::numOfStr(input, "\n") > 0) {
