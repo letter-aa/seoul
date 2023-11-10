@@ -9,16 +9,19 @@
 #define RIGHT_ARROW 77
 #define UP_ARROW 72
 #define DOWN_ARROW 80
+template<typename T> using function = void (*)(T);
 int line = 0;
 //start at pre
 using namespace std;
 vector<string> funcs =
 {
-	"console.text"
+	"console.text",
+	"save"
 };
 map<string, string> strv;
 map<string, int> intv;
 map<string, bool> boolv;
+string cst;
 void ok(string input, string pre, int line) {
 	COORD c;
 	c.X = 0;
@@ -258,7 +261,106 @@ namespace stringX {
 		return input;
 	}
 }
-void compile(string data) {
+
+void precompile(vector<string> var, string data, function<vector<string>> ifstr, function<vector<string>> els) {
+	if (stringX::numOfStr(var[1], "\"") == 2) {
+		stringX::replace(var[1], "\"", "", NULL);
+		stringX::replace(var[1], "\"", "", NULL);
+		ifstr(var);
+		return;
+	}
+	else if (stringX::numOfStr(var[1], "\"") == 1) {
+		cerr << "illegal syntax! pos: " << data.find("\"");
+		return;
+	}
+	else if (stringX::numOfStr(var[1], "\"") > 2) {
+		for (int i = 0; i < stringX::numOfStr(var[1], "\""); i++) {
+			if (var[1].substr(var[1].find("\"") - 1, var[1].find("\"")) == "\\") {
+				continue;
+			}
+			else {
+				cerr << "forgot \"\\\" before \"!";
+				return;
+			}
+		}
+	}
+	else if (stringX::numOfStr(var[1], "'") == 2) {
+		stringX::replace(var[1], "'", "", NULL);
+		stringX::replace(var[1], "'", "", NULL);
+		ifstr(var);
+		return;
+	}
+	else if (stringX::numOfStr(var[1], "'") == 1) {
+		cerr << "illegal syntax! pos: " << data.find("'");
+		return;
+	}
+	else if (stringX::numOfStr(var[1], "'") > 2) {
+		for (int i = 0; i < stringX::numOfStr(var[1], "'"); i++) {
+			if (var[1].substr(var[1].find("'") - 1, var[1].find("'")) == "\\") {
+				continue;
+			}
+			else {
+				cerr << "forgot \"\\\" before '!";
+				return;
+			}
+		}
+	}
+	else {
+		els(var);
+	}
+}
+void ifstrvar(vector<string> var) {
+	strv[var[0]] = var[1];
+}
+void elsvar(vector<string> var) {
+	if (var[1] == "true") {
+		boolv[var[0]] = true;
+		return;
+	}
+	else if (var[1] == "false") {
+		boolv[var[0]] = false;
+		return;
+	}
+	else if (stringX::isnum(var[1])) {
+		long long conv = strtoll(var[1].c_str(), nullptr, 10);
+		intv[var[0]] = conv;
+		return;
+	}
+	else {
+		cerr << "illegal number!";
+		return;
+	}
+}
+void ifstrfunc(vector<string> var) {
+	cout << var[1];
+}
+void elsfunc(vector<string> var) {
+	map<string, string>::iterator str = strv.begin();
+	map<string, int>::iterator i = intv.begin();
+	map<string, bool>::iterator bo = boolv.begin();
+	int inc = 0;
+	while (str != strv.end()) {
+		if (var[1] == str->first) {
+			cout << str->second;
+			return;
+		}
+	}
+	while (i != intv.end()) {
+		if (var[1] == i->first) {
+			cout << i->second;
+			return;
+		}
+	}
+	while (bo != boolv.end()) {
+		if (var[1] == bo->first) {
+			cout << bo->second;
+			return;
+		}
+	}
+	cerr << "malformed number or bool!";
+	return;
+}
+void compile(string input, string data) {
 	//VARIABLES
 	if (stringX::numOfStr(data, "=") > 0) {
 		if (stringX::numOfStr(data, "=") == 1) {
@@ -266,67 +368,7 @@ void compile(string data) {
 			stringX::splitString(data, var, "=");
 			stringX::replace(var[1], " ", "", NULL);
 			stringX::replace(var[0], " ", "", stringX::numOfStr(var[0], " ") - 1);
-			if (stringX::numOfStr(var[1], "\"") == 2) {
-				stringX::replace(var[1], "\"", "", NULL);
-				stringX::replace(var[1], "\"", "", NULL);
-				strv[var[0]] = var[1];
-				return;
-			}
-			else if (stringX::numOfStr(var[1], "\"") == 1) {
-				cerr << "illegal syntax! pos: " << data.find("\"");
-				return;
-			}
-			else if (stringX::numOfStr(var[1], "\"") > 2) {
-				for (int i = 0; i < stringX::numOfStr(var[1], "\""); i++) {
-					if (var[1].substr(var[1].find("\"") - 1, var[1].find("\"")) == "\\") {
-						continue;
-					}
-					else {
-						cerr << "forgot \"\\\" before \"!";
-						return;
-					}
-				}
-			}
-			else if (stringX::numOfStr(var[1], "'") == 2) {
-				stringX::replace(var[1], "'", "", NULL);
-				stringX::replace(var[1], "'", "", NULL);
-				strv[var[0]] = var[1];
-				return;
-			}
-			else if (stringX::numOfStr(var[1], "'") == 1) {
-				cerr << "illegal syntax! pos: " << data.find("'");
-				return;
-			}
-			else if (stringX::numOfStr(var[1], "'") > 2) {
-				for (int i = 0; i < stringX::numOfStr(var[1], "'"); i++) {
-					if (var[1].substr(var[1].find("'") - 1, var[1].find("'")) == "\\") {
-						continue;
-					}
-					else {
-						cerr << "forgot \"\\\" before '!";
-						return;
-					}
-				}
-			}
-			else {
-				if (var[1] == "true") {
-					boolv[var[0]] = true;
-					return;
-				}
-				else if (var[1] == "false") {
-					boolv[var[0]] = false;
-					return;
-				}
-				else if (stringX::isnum(var[1])) {
-					long long conv = strtoll(var[1].c_str(), nullptr, 10);
-					intv[var[0]] = conv;
-					return;
-				}
-				else {
-					cerr << "illegal number!";
-					return;
-				}
-			}
+			precompile(var, data, ifstrvar, elsvar);
 		}
 	} //FUNCTIONS
 	else if (data.substr(0, funcs[0].size()) == funcs[0]) {
@@ -334,101 +376,29 @@ void compile(string data) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
-			if (stringX::numOfStr(b[1], "\"") == 2) {
-				stringX::replace(b[1], "\"", "", NULL);
-				stringX::replace(b[1], "\"", "", NULL);
-				cout << b[1];
-				return;
-			}
-			else if (stringX::numOfStr(b[1], "\"") == 1) {
-				cerr << "illegal syntax! pos: " << data.find("\"");
-				return;
-			}
-			else if (stringX::numOfStr(b[1], "\"") > 2) {
-				for (int i = 0; i < stringX::numOfStr(b[1], "\""); i++) {
-					if (b[1].substr(b[1].find("\"") - 1, b[1].find("\"")) == "\\") {
-						continue;
-					}
-					else {
-						cerr << "forgot \"\\\" before \"!";
-						return;
-					}
-				}
-			}
-			else if (stringX::numOfStr(b[1], "'") == 2) {
-				stringX::replace(b[1], "'", "", NULL);
-				stringX::replace(b[1], "'", "", NULL);
-				cout << b[1];
-				return;
-			}
-			else if (stringX::numOfStr(b[1], "'") == 1) {
-				cerr << "illegal syntax! pos: " << b[1].find("'");
-				return;
-			}
-			else if (stringX::numOfStr(b[1], "'") > 2) {
-				for (int i = 0; i < stringX::numOfStr(b[1], "'"); i++) {
-					if (b[1].substr(b[1].find("'") - 1, b[1].find("'")) == "\\") {
-						continue;
-					}
-					else {
-						cerr << "forgot \"\\\" before '!";
-						return;
-					}
-				}
-			}
-			else {
-				if (b[1] == "true") {
-					cout << true;
-					return;
-				}
-				else if (b[1] == "false") {
-					cout << false;
-					return;
-				}
-				else if (stringX::isnum(b[1])) {
-					cout << strtoll(b[1].c_str(), nullptr, 10);
-					return;
-				}
-				else {
-					map<string, string>::iterator str = strv.begin();
-					map<string, int>::iterator i = intv.begin();
-					map<string, bool>::iterator bo = boolv.begin();
-					int inc = 0;
-					while (str != strv.end()) {
-						if (b[1] == str->first) {
-							cout << str->second;
-							return;
-						}
-					}
-					while (i != intv.end()) {
-						if (b[1] == i->first) {
-							cout << i->second;
-							return;
-						}
-					}
-					while (bo != boolv.end()) {
-						if (b[1] == bo->first) {
-							cout << bo->second;
-							return;
-						}
-					}
-					cerr << "malformed number or bool!";
-					return;
-				}
-			}
+			precompile(b, data, ifstrfunc, elsfunc);
+		}
+		else {
+			cerr << "function has been called invalidly";
+			return;
 		}
 	}
+	/*
+	else if (data.substr(0, funcs[1].size()) == funcs[1]) {
+
+	}*/
 }
 int main()
 {
 	string input = "";
 	while (true) {
 		input = stringX::type_t(">> ");
+		string tinput = input;
 		cout << endl;
 		vector<string> ans;
 		stringX::splitString(input, ans, "\n");
 		for (auto data : ans) {
-			compile(data);
+			compile(tinput,data);
 		}
 		cout << endl;
 		line++;
