@@ -4,6 +4,7 @@
 #include <vector>
 #include <conio.h>
 #include <map>
+#include <fstream>
 #define ANY_ARROW 224
 #define LEFT_ARROW 75
 #define RIGHT_ARROW 77
@@ -331,10 +332,10 @@ void elsvar(vector<string> var) {
 		return;
 	}
 }
-void ifstrfunc(vector<string> var) {
+void ifstrtext(vector<string> var) {
 	cout << var[1];
 }
-void elsfunc(vector<string> var) {
+void elstext(vector<string> var) {
 	map<string, string>::iterator str = strv.begin();
 	map<string, int>::iterator i = intv.begin();
 	map<string, bool>::iterator bo = boolv.begin();
@@ -360,6 +361,39 @@ void elsfunc(vector<string> var) {
 	cerr << "malformed number or bool!";
 	return;
 }
+void ifstrsave(vector<string> var) {
+	var[2] = var[2].substr(0, var[2].find("save"));
+	ofstream save(var[1].c_str());
+	save << var[2];
+}
+void elssave(vector<string> var) {
+	map<string, string>::iterator str = strv.begin();
+	map<string, int>::iterator i = intv.begin();
+	map<string, bool>::iterator bo = boolv.begin();
+	int inc = 0;
+	while (str != strv.end()) {
+		if (var[1] == str->first) {
+			var[2] = var[2].substr(0, var[3].find("save"));
+			ofstream save(str->second.c_str());
+			save << var[2];
+			return;
+		}
+	}
+	while (i != intv.end()) {
+		if (var[1] == i->first) {
+			cerr << "path is int!";
+			return;
+		}
+	}
+	while (bo != boolv.end()) {
+		if (var[1] == bo->first) {
+			cerr << "path is bool!";
+			return;
+		}
+	}
+	cerr << "malformed number or bool!";
+	return;
+}
 void compile(string input, string data) {
 	//VARIABLES
 	if (stringX::numOfStr(data, "=") > 0) {
@@ -376,17 +410,26 @@ void compile(string input, string data) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
-			precompile(b, data, ifstrfunc, elsfunc);
+			precompile(b, data, ifstrtext, elstext);
 		}
 		else {
 			cerr << "function has been called invalidly";
 			return;
 		}
 	}
-	/*
 	else if (data.substr(0, funcs[1].size()) == funcs[1]) {
-
-	}*/
+		if (stringX::numOfStr(data, "(") == 1 && stringX::numOfStr(data, ")") == 1) {
+			vector<string> b;
+			stringX::splitString(data, b, "(");
+			stringX::replace(b[1], ")", "", NULL);
+			b.push_back(input);
+			precompile(b, data, ifstrsave, elssave);
+		}
+		else {
+			cerr << "function has been called invalidly";
+			return;
+		}
+	}
 }
 int main()
 {
