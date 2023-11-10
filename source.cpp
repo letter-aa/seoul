@@ -14,12 +14,12 @@ int line = 0;
 using namespace std;
 vector<string> funcs =
 {
-	"console.addText"
+	"console.text"
 };
 map<string, string> strv;
 map<string, int> intv;
 map<string, bool> boolv;
-void ok(string input,string pre, int line) {
+void ok(string input, string pre, int line) {
 	COORD c;
 	c.X = 0;
 	c.Y = line;
@@ -237,12 +237,12 @@ namespace stringX {
 				default:
 					if (rowPos == input.size()) {
 						input = input + (char)i;
-						ok(input,pre, line);
+						ok(input, pre, line);
 						rowPos = rowPos + 1;
 					}
 					else {
 						input = input.substr(0, rowPos) + (char)i + input.substr(rowPos);
-						ok(input,pre, line);
+						ok(input, pre, line);
 						for (int i = 0; i < input.size() - rowPos; i++) {
 							cout << "\b";
 						}
@@ -266,21 +266,24 @@ void compile(string data) {
 			stringX::splitString(data, var, "=");
 			stringX::replace(var[1], " ", "", NULL);
 			stringX::replace(var[0], " ", "", stringX::numOfStr(var[0], " ") - 1);
-			if (stringX::numOfStr(var[1], "\"") == 2 && stringX::numOfStr(var[1], "'") < 2) {
+			if (stringX::numOfStr(var[1], "\"") == 2) {
 				stringX::replace(var[1], "\"", "", NULL);
 				stringX::replace(var[1], "\"", "", NULL);
 				strv[var[0]] = var[1];
+				return;
 			}
-			else if (stringX::numOfStr(data, "\"") == 1 && stringX::numOfStr(var[1], "'") < 2) {
-				cout << "illegal syntax! pos: " << data.find("\"");
+			else if (stringX::numOfStr(var[1], "\"") == 1) {
+				cerr << "illegal syntax! pos: " << data.find("\"");
+				return;
 			}
-			else if (stringX::numOfStr(data, "\"") > 2 && stringX::numOfStr(var[1], "'") < 2) {
+			else if (stringX::numOfStr(var[1], "\"") > 2) {
 				for (int i = 0; i < stringX::numOfStr(var[1], "\""); i++) {
 					if (var[1].substr(var[1].find("\"") - 1, var[1].find("\"")) == "\\") {
 						continue;
 					}
 					else {
-						cout << "forgot \"\\\" before \"!";
+						cerr << "forgot \"\\\" before \"!";
+						return;
 					}
 				}
 			}
@@ -288,34 +291,129 @@ void compile(string data) {
 				stringX::replace(var[1], "'", "", NULL);
 				stringX::replace(var[1], "'", "", NULL);
 				strv[var[0]] = var[1];
+				return;
 			}
-			else if (stringX::numOfStr(data, "'") == 1) {
-				cout << "illegal syntax! pos: " << data.find("'");
+			else if (stringX::numOfStr(var[1], "'") == 1) {
+				cerr << "illegal syntax! pos: " << data.find("'");
+				return;
 			}
-			else if (stringX::numOfStr(data, "'") > 2) {
-				for (int i = 0; i < stringX::numOfStr(data, "'"); i++) {
-					if (data.substr(data.find("'") - 1, data.find("'")) == "\\") {
+			else if (stringX::numOfStr(var[1], "'") > 2) {
+				for (int i = 0; i < stringX::numOfStr(var[1], "'"); i++) {
+					if (var[1].substr(var[1].find("'") - 1, var[1].find("'")) == "\\") {
 						continue;
 					}
 					else {
-						cout << "forgot \"\\\" before '!";
-						break;
+						cerr << "forgot \"\\\" before '!";
+						return;
 					}
 				}
 			}
 			else {
-				if (stringX::isnum(var[1])) {
-					long long conv = strtoll(var[1].c_str(), nullptr, 10);
-					intv[var[0]] = conv;
-				}
-				else {
-					cout << "illegal number!";
-				}
 				if (var[1] == "true") {
 					boolv[var[0]] = true;
+					return;
 				}
 				else if (var[1] == "false") {
 					boolv[var[0]] = false;
+					return;
+				}
+				else if (stringX::isnum(var[1])) {
+					long long conv = strtoll(var[1].c_str(), nullptr, 10);
+					intv[var[0]] = conv;
+					return;
+				}
+				else {
+					cerr << "illegal number!";
+					return;
+				}
+			}
+		}
+	} //FUNCTIONS
+	else if (data.substr(0, funcs[0].size()) == funcs[0]) {
+		if (stringX::numOfStr(data, "(") == 1 && stringX::numOfStr(data, ")") == 1) {
+			vector<string> b;
+			stringX::splitString(data, b, "(");
+			stringX::replace(b[1], ")", "", NULL);
+			if (stringX::numOfStr(b[1], "\"") == 2) {
+				stringX::replace(b[1], "\"", "", NULL);
+				stringX::replace(b[1], "\"", "", NULL);
+				cout << b[1];
+				return;
+			}
+			else if (stringX::numOfStr(b[1], "\"") == 1) {
+				cerr << "illegal syntax! pos: " << data.find("\"");
+				return;
+			}
+			else if (stringX::numOfStr(b[1], "\"") > 2) {
+				for (int i = 0; i < stringX::numOfStr(b[1], "\""); i++) {
+					if (b[1].substr(b[1].find("\"") - 1, b[1].find("\"")) == "\\") {
+						continue;
+					}
+					else {
+						cerr << "forgot \"\\\" before \"!";
+						return;
+					}
+				}
+			}
+			else if (stringX::numOfStr(b[1], "'") == 2) {
+				stringX::replace(b[1], "'", "", NULL);
+				stringX::replace(b[1], "'", "", NULL);
+				cout << b[1];
+				return;
+			}
+			else if (stringX::numOfStr(b[1], "'") == 1) {
+				cerr << "illegal syntax! pos: " << b[1].find("'");
+				return;
+			}
+			else if (stringX::numOfStr(b[1], "'") > 2) {
+				for (int i = 0; i < stringX::numOfStr(b[1], "'"); i++) {
+					if (b[1].substr(b[1].find("'") - 1, b[1].find("'")) == "\\") {
+						continue;
+					}
+					else {
+						cerr << "forgot \"\\\" before '!";
+						return;
+					}
+				}
+			}
+			else {
+				if (b[1] == "true") {
+					cout << true;
+					return;
+				}
+				else if (b[1] == "false") {
+					cout << false;
+					return;
+				}
+				else if (stringX::isnum(b[1])) {
+					cout << strtoll(b[1].c_str(), nullptr, 10);
+					return;
+				}
+				else {
+					map<string, string>::iterator str = strv.begin();
+					map<string, int>::iterator i = intv.begin();
+					map<string, bool>::iterator bo = boolv.begin();
+					int inc = 0;
+					while (str != strv.end()) {
+						if (b[1] == str->first) {
+							cout << str->second;
+							return;
+						}
+					}
+					while (i != intv.end()) {
+						if (b[1] == i->first) {
+							cout << i->second;
+							return;
+						}
+					}
+					while (bo != boolv.end()) {
+						if (b[1] == bo->first) {
+							cout << bo->second;
+							return;
+						}
+					}
+					cerr << "malformed number or bool!";
+					return;
 				}
 			}
 		}
@@ -324,7 +422,6 @@ void compile(string data) {
 int main()
 {
 	string input = "";
-	int inc = 0;
 	while (true) {
 		input = stringX::type_t(">> ");
 		cout << endl;
@@ -333,7 +430,8 @@ int main()
 		for (auto data : ans) {
 			compile(data);
 		}
-		inc++;
+		cout << endl;
+		line++;
 	}
 	/*
 	if (stringX::numOfStr(input, "\n") > 0) {
