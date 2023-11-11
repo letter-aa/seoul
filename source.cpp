@@ -17,7 +17,8 @@ using namespace std;
 vector<string> funcs =
 {
 	"console.text",
-	"save"
+	"save",
+	"load"
 };
 map<string, string> strv;
 map<string, int> intv;
@@ -394,6 +395,59 @@ void elssave(vector<string> var) {
 	cerr << "malformed number or bool!";
 	return;
 }
+void ifstrload(vector<string> var) {
+	string input1;
+	string input2;
+	input1 = var[2].substr(0, var[2].find("load"));
+	input2 = var[2].substr(var[2].find(")", var[2].find("load")) + 1);
+	var[2] = ""; // input1
+	ifstream save;
+	save.open(var[1].c_str());
+	string data;
+	while (getline(save, data)) {
+		var[2] = var[2] + "\n" + data;
+	}
+	var[2] = var[2] + "\n" + input2;
+	cst = var[2];
+}
+void elsload(vector<string> var) {
+	map<string, string>::iterator str = strv.begin();
+	map<string, int>::iterator i = intv.begin();
+	map<string, bool>::iterator bo = boolv.begin();
+	int inc = 0;
+	while (str != strv.end()) {
+		if (var[1] == str->first) {
+			string input1;
+			string input2;
+			input1 = var[2].substr(0, var[2].find("load"));
+			input2 = var[2].substr(var[2].find(")", var[2].find("load")) + 1);
+			var[2] = ""; // input1
+			ifstream save;
+			save.open(str->second.c_str());
+			string data;
+			while (getline(save, data)) {
+				var[2] = var[2] + "\n" + data;
+			}
+			var[2] = var[2] + "\n" + input2;
+			cst = var[2];
+			return;
+		}
+	}
+	while (i != intv.end()) {
+		if (var[1] == i->first) {
+			cerr << "path is int!";
+			return;
+		}
+	}
+	while (bo != boolv.end()) {
+		if (var[1] == bo->first) {
+			cerr << "path is bool!";
+			return;
+		}
+	}
+	cerr << "malformed number or bool!";
+	return;
+}
 void compile(string input, string data) {
 	//VARIABLES
 	if (stringX::numOfStr(data, "=") > 0) {
@@ -424,6 +478,26 @@ void compile(string input, string data) {
 			stringX::replace(b[1], ")", "", NULL);
 			b.push_back(input);
 			precompile(b, data, ifstrsave, elssave);
+			return;
+		}
+		else {
+			cerr << "function has been called invalidly";
+			return;
+		}
+	}
+	else if (data.substr(0, funcs[2].size()) == funcs[2]) {
+		if (stringX::numOfStr(data, "(") == 1 && stringX::numOfStr(data, ")") == 1) {
+			vector<string> b;
+			stringX::splitString(data, b, "(");
+			stringX::replace(b[1], ")", "", NULL);
+			b.push_back(input);
+			precompile(b, data, ifstrload, elsload);
+			vector<string> ans;
+			stringX::splitString(cst, ans, "\n");
+			for (auto data : ans) {
+				compile(cst, data);
+			}
+			return;
 		}
 		else {
 			cerr << "function has been called invalidly";
