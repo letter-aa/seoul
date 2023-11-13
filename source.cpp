@@ -23,6 +23,8 @@ vector<string> funcs =
 map<string, string> strv;
 map<string, int> intv;
 map<string, bool> boolv;
+string it;
+string dt;
 string cst;
 void ok(string input, string pre, int line) {
 	COORD c;
@@ -36,6 +38,21 @@ int woc() {
 	CONSOLE_SCREEN_BUFFER_INFO c;
 	GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &c);
 	return c.dwSize.X;
+}
+int pos(string input, string data, string tolookfor) {
+	return input.find(tolookfor, input.find(data));
+}
+void error(string error, string input, string data, string lookfor, bool next) {
+	if (next == false) {
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | COMMON_LVB_UNDERSCORE); // \033[4m
+		cerr << error << " pos: " << pos(input, data, lookfor);
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+	}
+	else {
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | COMMON_LVB_UNDERSCORE);
+		cerr << error << " pos: " << input.find(lookfor, pos(input, data, lookfor) + 1);
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+	}
 }
 namespace stringX {
 	void replace_all(string& mainString, string stringToReplace, string stringToReplaceWith) {
@@ -229,7 +246,12 @@ namespace stringX {
 						break;
 					case RIGHT_ARROW:
 						if (rowPos < input.length()) {
-							cout << "\033[C"; //idk how tf this works whoever's reading this pls explain!11
+							CONSOLE_SCREEN_BUFFER_INFO csbi;
+							COORD c;
+							GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+							c.Y = csbi.dwCursorPosition.Y;
+							c.X = csbi.dwCursorPosition.X + 1;
+							SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
 							rowPos = rowPos + 1;
 						}
 						break;
@@ -264,7 +286,9 @@ namespace stringX {
 	}
 }
 
-void precompile(vector<string> var, string data, function<vector<string>> ifstr, function<vector<string>> els) {
+void precompile(vector<string> var, string input, string data, function<vector<string>> ifstr, function<vector<string>> els) {
+	it = input;
+	dt = data;
 	if (stringX::numOfStr(var[1], "\"") == 2) {
 		stringX::replace(var[1], "\"", "", NULL);
 		stringX::replace(var[1], "\"", "", NULL);
@@ -272,19 +296,26 @@ void precompile(vector<string> var, string data, function<vector<string>> ifstr,
 		return;
 	}
 	else if (stringX::numOfStr(var[1], "\"") == 1) {
-		cerr << "illegal syntax! pos: " << data.find("\"");
+		error("forgot \" !", input, data, "\"", false);
 		return;
 	}
 	else if (stringX::numOfStr(var[1], "\"") > 2) {
+		int find = var[1].find("\"");
 		for (int i = 0; i < stringX::numOfStr(var[1], "\""); i++) {
-			if (var[1].substr(var[1].find("\"") - 1, var[1].find("\"")) == "\\") {
-				continue;
+			if (find > 0) {
+				if (var[1].substr(find - 1, find - 1) == "\\") {
+					find = var[1].find("\"", find + 1);
+				}
+				else {
+					error("forgot \"\\\" before \"!",input,data,"\"",true);
+					return;
+				}
 			}
 			else {
-				cerr << "forgot \"\\\" before \"!";
-				return;
+				find = var[1].find("\"", find + 1);
 			}
 		}
+		ifstr(var);
 	}
 	else if (stringX::numOfStr(var[1], "'") == 2) {
 		stringX::replace(var[1], "'", "", NULL);
@@ -293,19 +324,20 @@ void precompile(vector<string> var, string data, function<vector<string>> ifstr,
 		return;
 	}
 	else if (stringX::numOfStr(var[1], "'") == 1) {
-		cerr << "illegal syntax! pos: " << data.find("'");
+		error("forgot \"'\" !", input, data, "'", false);
 		return;
 	}
 	else if (stringX::numOfStr(var[1], "'") > 2) {
 		for (int i = 0; i < stringX::numOfStr(var[1], "'"); i++) {
-			if (var[1].substr(var[1].find("'") - 1, var[1].find("'")) == "\\") {
+			if (var[1].find("'") > 0 && var[1].substr(var[1].find("'") - 1, var[1].find("'")) == "\\") {
 				continue;
 			}
 			else {
-				cerr << "forgot \"\\\" before '!";
+				error("forgot \"\\\" before '!", input, data, "\"", true);
 				return;
 			}
 		}
+		ifstr(var);
 	}
 	else {
 		els(var);
@@ -315,6 +347,7 @@ void ifstrvar(vector<string> var) {
 	strv[var[0]] = var[1];
 }
 void elsvar(vector<string> var) {
+	stringX::replace_all(var[1], " ", "");
 	if (var[1] == "true") {
 		boolv[var[0]] = true;
 		return;
@@ -325,11 +358,17 @@ void elsvar(vector<string> var) {
 	}
 	else if (stringX::isnum(var[1])) {
 		long long conv = strtoll(var[1].c_str(), nullptr, 10);
-		intv[var[0]] = conv;
+		if (conv < INT64_MAX) {
+			intv[var[0]] = conv;
+		}
+		else {
+			error("number is too big! variable could not be initialized.", it, dt, var[1], false);
+			line++;
+		}
 		return;
 	}
 	else {
-		cerr << "illegal number!";
+		error("illegal number!", it, dt, var[1], false);
 		return;
 	}
 }
@@ -337,6 +376,7 @@ void ifstrtext(vector<string> var) {
 	cout << var[1];
 }
 void elstext(vector<string> var) {
+	stringX::replace_all(var[1], " ", "");
 	map<string, string>::iterator str = strv.begin();
 	map<string, int>::iterator i = intv.begin();
 	map<string, bool>::iterator bo = boolv.begin();
@@ -359,7 +399,27 @@ void elstext(vector<string> var) {
 			return;
 		}
 	}
-	cerr << "malformed number or bool!";
+	if (var[1] == "true") {
+		cout << true;
+		return;
+	}
+	else if (var[1] == "false") {
+		cout << false;
+		return;
+	}
+	else if (stringX::isnum(var[1])) {
+		long long conv = strtoll(var[1].c_str(), nullptr, 10);
+		if (conv < INT64_MAX) {
+			cout << conv;
+		}
+		else {
+			error("number is too big! cannot be converted to a number.", it, dt, var[1], false);
+			cout << endl << var[1];
+			line++;
+		}
+		return;
+	}
+	error("malformed number or bool!", it, dt, var[1], false);
 	return;
 }
 void ifstrsave(vector<string> var) {
@@ -368,6 +428,7 @@ void ifstrsave(vector<string> var) {
 	save << var[2];
 }
 void elssave(vector<string> var) {
+	stringX::replace_all(var[1], " ", "");
 	map<string, string>::iterator str = strv.begin();
 	map<string, int>::iterator i = intv.begin();
 	map<string, bool>::iterator bo = boolv.begin();
@@ -382,17 +443,17 @@ void elssave(vector<string> var) {
 	}
 	while (i != intv.end()) {
 		if (var[1] == i->first) {
-			cerr << "path is int!";
+			error("path is int!", it, dt, var[0], false);
 			return;
 		}
 	}
 	while (bo != boolv.end()) {
 		if (var[1] == bo->first) {
-			cerr << "path is bool!";
+			error("path is bool!", it, dt, var[0], false);
 			return;
 		}
 	}
-	cerr << "malformed number or bool!";
+	error("malformed number or bool!", it, dt, var[1], false);
 	return;
 }
 void ifstrload(vector<string> var) {
@@ -411,6 +472,7 @@ void ifstrload(vector<string> var) {
 	cst = var[2];
 }
 void elsload(vector<string> var) {
+	stringX::replace_all(var[1], " ", "");
 	map<string, string>::iterator str = strv.begin();
 	map<string, int>::iterator i = intv.begin();
 	map<string, bool>::iterator bo = boolv.begin();
@@ -435,39 +497,30 @@ void elsload(vector<string> var) {
 	}
 	while (i != intv.end()) {
 		if (var[1] == i->first) {
-			cerr << "path is int!";
+			error("path is int!", it, dt, var[1], false);
 			return;
 		}
 	}
 	while (bo != boolv.end()) {
 		if (var[1] == bo->first) {
-			cerr << "path is bool!";
+			error("path is bool!", it, dt, var[1], false);
 			return;
 		}
 	}
-	cerr << "malformed number or bool!";
+	error("malformed number or bool!", it, dt, var[1], false);
 	return;
 }
 void compile(string input, string data) {
-	//VARIABLES
-	if (stringX::numOfStr(data, "=") > 0) {
-		if (stringX::numOfStr(data, "=") == 1) {
-			vector<string> var;
-			stringX::splitString(data, var, "=");
-			stringX::replace(var[1], " ", "", NULL);
-			stringX::replace(var[0], " ", "", stringX::numOfStr(var[0], " ") - 1);
-			precompile(var, data, ifstrvar, elsvar);
-		}
-	} //FUNCTIONS
-	else if (data.substr(0, funcs[0].size()) == funcs[0]) {
+	//FUNCTIONS
+	if (data.substr(0, funcs[0].size()) == funcs[0]) {
 		if (stringX::numOfStr(data, "(") == 1 && stringX::numOfStr(data, ")") == 1) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
-			precompile(b, data, ifstrtext, elstext);
+			precompile(b, input, data, ifstrtext, elstext);
 		}
 		else {
-			cerr << "function has been called invalidly";
+			error("function has been called inavlidly", input, data, "(", false);
 			return;
 		}
 	}
@@ -477,11 +530,11 @@ void compile(string input, string data) {
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
 			b.push_back(input);
-			precompile(b, data, ifstrsave, elssave);
+			precompile(b, input, data, ifstrsave, elssave);
 			return;
 		}
 		else {
-			cerr << "function has been called invalidly";
+			error("function has been called inavlidly", input, data, "(", false);
 			return;
 		}
 	}
@@ -491,7 +544,7 @@ void compile(string input, string data) {
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
 			b.push_back(input);
-			precompile(b, data, ifstrload, elsload);
+			precompile(b, input, data, ifstrload, elsload);
 			vector<string> ans;
 			stringX::splitString(cst, ans, "\n");
 			for (auto data : ans) {
@@ -500,9 +553,58 @@ void compile(string input, string data) {
 			return;
 		}
 		else {
-			cerr << "function has been called invalidly";
+			error("function has been called inavlidly", input, data, "(", false);
 			return;
 		}
+	}
+	//VARIABLES
+	else if (stringX::numOfStr(data, "=") > 0) {
+		if (stringX::numOfStr(data, "=") == 1) {
+			vector<string> var;
+			stringX::splitString(data, var, "=");
+			/*
+			cout << var.size();
+			if (var.size() < 2) {
+				if (data.find(var[0]) > data.find("=")) {
+					cerr << "variable name is empty!";
+					return;
+				}
+				else if (data.find(var[0]) < data.find("=")) {
+					cerr << "variable value is empty!";
+					return;
+				}
+				else {
+					cerr << "illegal variable! possibly missing both value and name!";
+					return;
+				}
+				return;
+			}*/
+			if ((var[0].find_first_not_of("") == string::npos || var[0].find_first_not_of(" ") == string::npos) && (var[1].find_first_not_of("") == string::npos || var[1].find_first_not_of(" ") == string::npos)) {
+				error("missing variable name and value!", input, data, "", false);
+				return;
+			}
+			if (var[0].find_first_not_of("") == string::npos || var[0].find_first_not_of(" ") == string::npos) {
+				error("variable name is empty!", input, data, var[0], false);
+				return;
+			}
+			if (var[1].find_first_not_of("") == string::npos || var[1].find_first_not_of(" ") == string::npos) {
+				error("variable value is empty!", input, data, var[1], false);
+				return;
+			}
+			if (stringX::numOfStr(var[0], " ") > 0) {
+				stringX::replace(var[0], " ", "", stringX::numOfStr(var[0], " ") - 1);
+			}
+			if (stringX::numOfStr(var[0], " ") > 0) {
+				stringX::replace(var[1], " ", "", NULL);
+			}
+			precompile(var, input, data, ifstrvar, elsvar);
+		}
+	}
+	else {
+		if (data.find_first_not_of(" ") != string::npos) {
+			error("unknown syntax!", input, data, data, false);
+		}
+		return;
 	}
 }
 int main()
