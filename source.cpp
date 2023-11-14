@@ -42,16 +42,22 @@ int woc() {
 int pos(string input, string data, string tolookfor) {
 	return input.find(tolookfor, input.find(data));
 }
+void rs(vector<string> & var) {
+	var[0] = var[0].substr(var[0].find_first_not_of(" "), var[0].find_last_not_of(" ") + 1);
+	var[1] = var[1].substr(var[1].find_first_not_of(" "), var[1].find_last_not_of(" ") + 1);
+}
 void error(string error, string input, string data, string lookfor, bool next) {
 	if (next == false) {
-		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | COMMON_LVB_UNDERSCORE); // \033[4m
-		cerr << error << " pos: " << pos(input, data, lookfor);
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED); // \033[4m
+		cerr << error << " pos: " << pos(input, data, lookfor) << endl;
 		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+		line++;
 	}
 	else {
-		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED | COMMON_LVB_UNDERSCORE);
-		cerr << error << " pos: " << input.find(lookfor, pos(input, data, lookfor) + 1);
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED);
+		cerr << error << " pos: " << input.find(lookfor, pos(input, data, lookfor) + 1) << endl;
 		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+		line++;
 	}
 }
 namespace stringX {
@@ -88,14 +94,8 @@ namespace stringX {
 		int amount = 0;
 		string tempMain = mainString;
 		while (tempMain.find(strToCount) != string::npos) {
-			//cout << mainString;
-			if (string(1, tempMain[0]) == strToCount) {
-				tempMain = tempMain.substr(1);
-				amount++;
-			}
-			else {
-				tempMain = tempMain.substr(1);
-			}
+			amount++;
+			replace(tempMain, strToCount, "", NULL);
 		}
 		return amount;
 	}
@@ -292,6 +292,7 @@ void precompile(vector<string> var, string input, string data, function<vector<s
 	if (stringX::numOfStr(var[1], "\"") == 2) {
 		stringX::replace(var[1], "\"", "", NULL);
 		stringX::replace(var[1], "\"", "", NULL);
+		stringX::replace_all(var[1], "\\n", "\n");
 		ifstr(var);
 		return;
 	}
@@ -344,21 +345,32 @@ void precompile(vector<string> var, string input, string data, function<vector<s
 	}
 }
 void ifstrvar(vector<string> var) {
+	intv.erase(var[0]);
+	boolv.erase(var[0]);
 	strv[var[0]] = var[1];
 }
 void elsvar(vector<string> var) {
-	stringX::replace_all(var[1], " ", "");
+	map<string, string>::iterator str = strv.begin();
+	map<string, int>::iterator i = intv.begin();
+	map<string, bool>::iterator bo = boolv.begin();
+	int inc = 0;
 	if (var[1] == "true") {
+		strv.erase(var[0]);
+		intv.erase(var[0]);
 		boolv[var[0]] = true;
 		return;
 	}
 	else if (var[1] == "false") {
+		strv.erase(var[0]);
+		intv.erase(var[0]);
 		boolv[var[0]] = false;
 		return;
 	}
 	else if (stringX::isnum(var[1])) {
 		long long conv = strtoll(var[1].c_str(), nullptr, 10);
 		if (conv < INT64_MAX) {
+			strv.erase(var[0]);
+			boolv.erase(var[0]);
 			intv[var[0]] = conv;
 		}
 		else {
@@ -373,10 +385,12 @@ void elsvar(vector<string> var) {
 	}
 }
 void ifstrtext(vector<string> var) {
-	cout << var[1];
+	int a = stringX::numOfStr(var[1], "\n");
+	for (int i = 0; i < a; i++) {
+		line++;
+	}
 }
 void elstext(vector<string> var) {
-	stringX::replace_all(var[1], " ", "");
 	map<string, string>::iterator str = strv.begin();
 	map<string, int>::iterator i = intv.begin();
 	map<string, bool>::iterator bo = boolv.begin();
@@ -384,6 +398,10 @@ void elstext(vector<string> var) {
 	while (str != strv.end()) {
 		if (var[1] == str->first) {
 			cout << str->second;
+			int a = stringX::numOfStr(var[1], "\n");
+			for (int i = 0; i < a; i++) {
+				line++;
+			}
 			return;
 		}
 	}
@@ -428,7 +446,6 @@ void ifstrsave(vector<string> var) {
 	save << var[2];
 }
 void elssave(vector<string> var) {
-	stringX::replace_all(var[1], " ", "");
 	map<string, string>::iterator str = strv.begin();
 	map<string, int>::iterator i = intv.begin();
 	map<string, bool>::iterator bo = boolv.begin();
@@ -472,7 +489,6 @@ void ifstrload(vector<string> var) {
 	cst = var[2];
 }
 void elsload(vector<string> var) {
-	stringX::replace_all(var[1], " ", "");
 	map<string, string>::iterator str = strv.begin();
 	map<string, int>::iterator i = intv.begin();
 	map<string, bool>::iterator bo = boolv.begin();
@@ -517,6 +533,7 @@ void compile(string input, string data) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
+			rs(b);
 			precompile(b, input, data, ifstrtext, elstext);
 		}
 		else {
@@ -529,6 +546,7 @@ void compile(string input, string data) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
+			rs(b);
 			b.push_back(input);
 			precompile(b, input, data, ifstrsave, elssave);
 			return;
@@ -544,6 +562,7 @@ void compile(string input, string data) {
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
 			b.push_back(input);
+			rs(b);
 			precompile(b, input, data, ifstrload, elsload);
 			vector<string> ans;
 			stringX::splitString(cst, ans, "\n");
@@ -591,12 +610,7 @@ void compile(string input, string data) {
 				error("variable value is empty!", input, data, var[1], false);
 				return;
 			}
-			if (stringX::numOfStr(var[0], " ") > 0) {
-				stringX::replace(var[0], " ", "", stringX::numOfStr(var[0], " ") - 1);
-			}
-			if (stringX::numOfStr(var[0], " ") > 0) {
-				stringX::replace(var[1], " ", "", NULL);
-			}
+			rs(var);
 			precompile(var, input, data, ifstrvar, elsvar);
 		}
 	}
