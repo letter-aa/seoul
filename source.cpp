@@ -389,6 +389,7 @@ void ifstrtext(vector<string> var) {
 	for (int i = 0; i < a; i++) {
 		line++;
 	}
+	cout << var[1];
 }
 void elstext(vector<string> var) {
 	map<string, string>::iterator str = strv.begin();
