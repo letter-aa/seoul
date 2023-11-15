@@ -411,6 +411,7 @@ void ifstrvar(vector<string> var) {
 }
 void elsvar(vector<string> var) {
 	int inc = 0;
+	format(var, NULL);
 	if (var[1] == "true") {
 		strv.erase(var[0]);
 		intv.erase(var[0]);
