@@ -330,8 +330,10 @@ namespace stringX {
 				}
 			}
 		}
-		line++;
-		for (int i = 0; i < numOfStr(input, "\n"); i++) {
+		CONSOLE_SCREEN_BUFFER_INFO csbi; 
+		GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi); 
+		line = csbi.dwCursorPosition.Y;
+		for (int i = 0; i <= numOfStr(input, "\n"); i++) {
 			line++;
 		}
 		return input;
