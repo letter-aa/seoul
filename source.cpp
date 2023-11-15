@@ -104,6 +104,14 @@ int format(vector<string>& var, int quotes) { // second param is SINGLE or DOUBL
 		}
 	}
 }
+void rc(string& var) {
+	if (var[0] == '\'' && var[var.size() - 1] == '\'') {
+		var = var.substr(1, var.size() - 2);
+	}
+	else if (var[0] == '"' && var[var.size() - 1] == '"') {
+		var = var.substr(1, var.size() - 2);
+	}
+}
 namespace stringX {
 	void replace_all(string& mainString, string stringToReplace, string stringToReplaceWith) {
 		for (int i = mainString.find(stringToReplace); i != string::npos; i = mainString.find(stringToReplace)) {
@@ -336,7 +344,7 @@ int str(vector<string> & var, string input, string data) {
 	}
 	else if (stringX::numOfStr(var[1], "\"") == 1) {
 		error("forgot \" !", input, data, "\"", false);
-		return NULL;
+		return -1;
 	}
 	else if (stringX::numOfStr(var[1], "\"") > 2) {
 		int find = var[1].find("\"");
@@ -347,7 +355,7 @@ int str(vector<string> & var, string input, string data) {
 				}
 				else {
 					error("forgot \"\\\" before \"!", input, data, "\"", true);
-					return NULL;
+					return -1;
 				}
 			}
 			else {
@@ -362,7 +370,7 @@ int str(vector<string> & var, string input, string data) {
 	}
 	else if (stringX::numOfStr(var[1], "'") == 1) {
 		error("forgot \"'\" !", input, data, "'", false);
-		return NULL;
+		return -1;
 	}
 	else if (stringX::numOfStr(var[1], "'") > 2) {
 		for (int i = 0; i < stringX::numOfStr(var[1], "'"); i++) {
@@ -371,20 +379,20 @@ int str(vector<string> & var, string input, string data) {
 			}
 			else {
 				error("forgot \"\\\" before '!", input, data, "\"", true);
-				return NULL;
+				return -1;
 			}
 		}
 		return SINGLE;
 	}
 	else {
-		return -1;
+		return NULL;
 	}
 }
 void precompile(vector<string> var, string input, string data, function<vector<string>> ifstr, function<vector<string>> els) {
 	it = input;
 	dt = data;
 	int strr = str(var, input, data);
-	var[1] = var[1].substr(1, var[1].size() - 2);
+	rc(var[1]);
 	if (strr != NULL && strr != -1) {
 		ifstr(var);
 	}
@@ -398,12 +406,10 @@ void precompile(vector<string> var, string input, string data, function<vector<s
 void ifstrvar(vector<string> var) {
 	intv.erase(var[0]);
 	boolv.erase(var[0]);
+	rc(var[1]);
 	strv[var[0]] = var[1];
 }
 void elsvar(vector<string> var) {
-	map<string, string>::iterator str = strv.begin();
-	map<string, int>::iterator i = intv.begin();
-	map<string, bool>::iterator bo = boolv.begin();
 	int inc = 0;
 	if (var[1] == "true") {
 		strv.erase(var[0]);
@@ -447,6 +453,26 @@ void elstext(vector<string> var) {
 	map<string, int>::iterator i = intv.begin();
 	map<string, bool>::iterator bo = boolv.begin();
 	int inc = 0;
+	if (var[1] == "true") {
+		cout << true;
+		return;
+	}
+	else if (var[1] == "false") {
+		cout << false;
+		return;
+	}
+	else if (stringX::isnum(var[1])) {
+		long long conv = strtoll(var[1].c_str(), nullptr, 10);
+		if (conv < INT64_MAX) {
+			cout << conv;
+		}
+		else {
+			error("number is too big! cannot be converted to a number.", it, dt, var[1], false);
+			cout << endl << var[1];
+			line++;
+		}
+		return;
+	}
 	while (str != strv.end()) {
 		if (var[1] == str->first) {
 			cout << str->second;
@@ -468,26 +494,6 @@ void elstext(vector<string> var) {
 			cout << bo->second;
 			return;
 		}
-	}
-	if (var[1] == "true") {
-		cout << true;
-		return;
-	}
-	else if (var[1] == "false") {
-		cout << false;
-		return;
-	}
-	else if (stringX::isnum(var[1])) {
-		long long conv = strtoll(var[1].c_str(), nullptr, 10);
-		if (conv < INT64_MAX) {
-			cout << conv;
-		}
-		else {
-			error("number is too big! cannot be converted to a number.", it, dt, var[1], false);
-			cout << endl << var[1];
-			line++;
-		}
-		return;
 	}
 	error("malformed number or bool!", it, dt, var[1], false);
 	return;
