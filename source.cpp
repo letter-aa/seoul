@@ -10,6 +10,8 @@
 #define RIGHT_ARROW 77
 #define UP_ARROW 72
 #define DOWN_ARROW 80
+#define SINGLE 1
+#define DOUBLE 2
 template<typename T> using function = void (*)(T);
 int line = 0;
 //start at pre
@@ -42,10 +44,6 @@ int woc() {
 int pos(string input, string data, string tolookfor) {
 	return input.find(tolookfor, input.find(data));
 }
-void rs(vector<string> & var) {
-	var[0] = var[0].substr(var[0].find_first_not_of(" "), var[0].find_last_not_of(" ") + 1);
-	var[1] = var[1].substr(var[1].find_first_not_of(" "), var[1].find_last_not_of(" ") + 1);
-}
 void error(string error, string input, string data, string lookfor, bool next) {
 	if (next == false) {
 		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_RED); // \033[4m
@@ -58,6 +56,52 @@ void error(string error, string input, string data, string lookfor, bool next) {
 		cerr << error << " pos: " << input.find(lookfor, pos(input, data, lookfor) + 1) << endl;
 		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
 		line++;
+	}
+}
+int preformat(string & var, string quote) {
+	/*cout << var << endl;
+	cout << var.find(quote) << endl << var.find_last_of(quote) << endl << var.size() << endl << var[0];*/
+	if (var.find(quote) != string::npos) {
+		string test = var.substr(var.find(quote), var.find_last_of(quote) - var.find(quote) + 1);
+		string test1 = var.substr(var.find(test) + test.size());
+		string test2 = var.substr(0, var.find(test));
+		if (test1.find_first_not_of(" ") != string::npos) {
+			error("illegal string!", it, var, "", false);
+			return 1;
+		}
+		else if (test2.find_first_not_of(" ") != string::npos) {
+			error("illegal string!", it, var, "", false);
+			return 1;
+		}
+		else {
+			var = test;
+			return 0;
+		}
+	}
+	return -1;
+}
+int format(vector<string>& var, int quotes) { // second param is SINGLE or DOUBLE
+	var[0] = var[0].substr(var[0].find_first_not_of("	"), var[0].find_last_not_of("	") + 1);
+	var[1] = var[1].substr(var[1].find_first_not_of("	"), var[1].find_last_not_of("	") + 1);
+	var[0] = var[0].substr(var[0].find_first_not_of(" "), var[0].find_last_not_of(" ") + 1);
+	var[1] = var[1].substr(var[1].find_first_not_of(" "), var[1].find_last_not_of(" ") + 1);
+	if (quotes == SINGLE) {
+		int h = preformat(var[1], "'");
+		if (h == 1) {
+			return 1;
+		}
+		else {
+			return 0;
+		}
+	}
+	else if (quotes == DOUBLE) {
+		int h = preformat(var[1], "\"");
+		if (h == 1) {
+			return 1;
+		}
+		else {
+			return 0;
+		}
 	}
 }
 namespace stringX {
@@ -285,20 +329,14 @@ namespace stringX {
 		return input;
 	}
 }
-
-void precompile(vector<string> var, string input, string data, function<vector<string>> ifstr, function<vector<string>> els) {
-	it = input;
-	dt = data;
+int str(vector<string> & var, string input, string data) {
 	if (stringX::numOfStr(var[1], "\"") == 2) {
-		stringX::replace(var[1], "\"", "", NULL);
-		stringX::replace(var[1], "\"", "", NULL);
 		stringX::replace_all(var[1], "\\n", "\n");
-		ifstr(var);
-		return;
+		return DOUBLE;
 	}
 	else if (stringX::numOfStr(var[1], "\"") == 1) {
 		error("forgot \" !", input, data, "\"", false);
-		return;
+		return NULL;
 	}
 	else if (stringX::numOfStr(var[1], "\"") > 2) {
 		int find = var[1].find("\"");
@@ -308,25 +346,23 @@ void precompile(vector<string> var, string input, string data, function<vector<s
 					find = var[1].find("\"", find + 1);
 				}
 				else {
-					error("forgot \"\\\" before \"!",input,data,"\"",true);
-					return;
+					error("forgot \"\\\" before \"!", input, data, "\"", true);
+					return NULL;
 				}
 			}
 			else {
 				find = var[1].find("\"", find + 1);
 			}
 		}
-		ifstr(var);
+		return DOUBLE;
 	}
 	else if (stringX::numOfStr(var[1], "'") == 2) {
-		stringX::replace(var[1], "'", "", NULL);
-		stringX::replace(var[1], "'", "", NULL);
-		ifstr(var);
-		return;
+		stringX::replace_all(var[1], "\\n", "\n");
+		return SINGLE;
 	}
 	else if (stringX::numOfStr(var[1], "'") == 1) {
 		error("forgot \"'\" !", input, data, "'", false);
-		return;
+		return NULL;
 	}
 	else if (stringX::numOfStr(var[1], "'") > 2) {
 		for (int i = 0; i < stringX::numOfStr(var[1], "'"); i++) {
@@ -335,10 +371,25 @@ void precompile(vector<string> var, string input, string data, function<vector<s
 			}
 			else {
 				error("forgot \"\\\" before '!", input, data, "\"", true);
-				return;
+				return NULL;
 			}
 		}
+		return SINGLE;
+	}
+	else {
+		return -1;
+	}
+}
+void precompile(vector<string> var, string input, string data, function<vector<string>> ifstr, function<vector<string>> els) {
+	it = input;
+	dt = data;
+	int strr = str(var, input, data);
+	var[1] = var[1].substr(1, var[1].size() - 2);
+	if (strr != NULL && strr != -1) {
 		ifstr(var);
+	}
+	else if (strr == -1) {
+		return;
 	}
 	else {
 		els(var);
@@ -534,7 +585,21 @@ void compile(string input, string data) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
-			rs(b);
+			if (str(b, input, data) == DOUBLE) {
+				int form = format(b, DOUBLE);
+				if (form == 1 || form == -1) {
+					return;
+				}
+			} 
+			else if (str(b, input, data) == SINGLE) {
+				int form = format(b, SINGLE);
+				if (form == 1 || form == -1) {
+					return;
+				}
+			}
+			else if (str(b, input, data) == -1) {
+				return;
+			}
 			precompile(b, input, data, ifstrtext, elstext);
 		}
 		else {
@@ -547,7 +612,21 @@ void compile(string input, string data) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
-			rs(b);
+			if (str(b, input, data) == DOUBLE) {
+				int form = format(b, DOUBLE);
+				if (form == 1 || form == -1) {
+					return;
+				}
+			}
+			else if (str(b, input, data) == SINGLE) {
+				int form = format(b, SINGLE);
+				if (form == 1 || form == -1) {
+					return;
+				}
+			}
+			else if (str(b, input, data) == -1) {
+				return;
+			}
 			b.push_back(input);
 			precompile(b, input, data, ifstrsave, elssave);
 			return;
@@ -563,7 +642,21 @@ void compile(string input, string data) {
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
 			b.push_back(input);
-			rs(b);
+			if (str(b, input, data) == DOUBLE) {
+				int form = format(b, DOUBLE);
+				if (form == 1 || form == -1) {
+					return;
+				}
+			}
+			else if (str(b, input, data) == SINGLE) {
+				int form = format(b, SINGLE);
+				if (form == 1 || form == -1) {
+					return;
+				}
+			}
+			else if (str(b, input, data) == -1) {
+				return;
+			}
 			precompile(b, input, data, ifstrload, elsload);
 			vector<string> ans;
 			stringX::splitString(cst, ans, "\n");
@@ -611,7 +704,21 @@ void compile(string input, string data) {
 				error("variable value is empty!", input, data, var[1], false);
 				return;
 			}
-			rs(var);
+			if (str(var, input, data) == DOUBLE) {
+				int form = format(var, DOUBLE);
+				if (form == 1 || form == -1) {
+					return;
+				}
+			}
+			else if (str(var, input, data) == SINGLE) {
+				int form = format(var, SINGLE);
+				if (form == 1 || form == -1) {
+					return;
+				}
+			}
+			else if (str(var, input, data) == -1) {
+				return;
+			}
 			precompile(var, input, data, ifstrvar, elsvar);
 		}
 	}
@@ -632,7 +739,7 @@ int main()
 		vector<string> ans;
 		stringX::splitString(input, ans, "\n");
 		for (auto data : ans) {
-			compile(tinput,data);
+			compile(tinput, data);
 		}
 		cout << endl;
 		line++;
