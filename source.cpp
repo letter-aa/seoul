@@ -479,8 +479,10 @@ void elstext(vector<string> var) {
 	while (str != strv.end()) {
 		if (var[1] == str->first) {
 			cout << str->second;
-			int a = stringX::numOfStr(var[1], "\n");
-			for (int i = 0; i < a; i++) {
+			CONSOLE_SCREEN_BUFFER_INFO csbi;
+			GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
+			line = csbi.dwCursorPosition.Y;
+			for (int i = 0; i < stringX::numOfStr(var[1], "\n"); i++) {
 				line++;
 			}
 			return;
