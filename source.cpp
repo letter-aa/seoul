@@ -1,3 +1,4 @@
+//fix interpreter only removing one part of boolean comparison string 
 #include <iostream>
 #include <Windows.h>
 #include <string>
@@ -14,7 +15,6 @@
 #define DOUBLE 2
 template<typename T> using function = void (*)(T);
 int line = 0;
-//start at pre
 using namespace std;
 vector<string> funcs =
 {
@@ -59,13 +59,16 @@ void error(string error, string input, string data, string lookfor, bool next) {
 		line++;
 	}
 }
+void gsbas(string var, string midStr, string & after, string & before) { //get strings before and after main string
+	after = var.substr(var.find(midStr) + midStr.size());
+	before = var.substr(0, var.find(midStr));
+}
 int preformat(string & var, string quote) {
-	/*cout << var << endl;
-	cout << var.find(quote) << endl << var.find_last_of(quote) << endl << var.size() << endl << var[0];*/
 	if (var.find(quote) != string::npos) {
 		string test = var.substr(var.find(quote), var.find_last_of(quote) - var.find(quote) + 1);
-		string test1 = var.substr(var.find(test) + test.size());
-		string test2 = var.substr(0, var.find(test));
+		string test1;
+		string test2;
+		gsbas(var, test, test1, test2);
 		if (test1.find_first_not_of(" ") != string::npos) {
 			error("illegal string!", it, var, "", false);
 			return 1;
@@ -115,6 +118,79 @@ void rc(string& var) {
 	else if (var[0] == '"' && var[var.size() - 1] == '"') {
 		var = var.substr(1, var.size() - 2);
 	}
+}
+// BOOLEAN COMPARISON FUNCS
+// check if quote has \ and check if there is more after == cut
+// for loop each character if quote then continue, if \, check if next char is quote or not, 
+// if quote, skip two/one chars and continue until found quote without \ before quote
+string rsfbc(vector<int> cpos, string var) { // remove bool comparisons with quotes from boolean comparison
+	string tvar = var;
+	for (int i = 0; i < cpos.size(); i++) {
+		if (i == cpos.size() - 1) {
+			tvar = var.substr(cpos[i]);
+		}
+		else {
+			tvar = var.substr(0, cpos[i]) + var.substr(cpos[i + 1] - cpos[i] + 1);
+		//	tvar.erase(cpos[i], cpos[i + 1] - cpos[i] + 1);
+			i++;
+		}
+	}
+	if (tvar.find("\"") != string::npos) {
+		tvar = "==";
+	}
+	else if (tvar.find("'") != string::npos) {
+		tvar = "==";
+	}
+	return tvar;
+}
+vector<int> gstp(string var) { // get str pos from bool comparison
+	vector<int> cpos;
+	bool dcw = false; //double comma wait
+	bool scw = false; //single comma wait
+	for (int i = 0; i < var.size() - 1; i++) {
+		if (var[i] == '\\') {
+			i++;
+			continue;
+		}
+		else {
+			if (var[i] == '\'') {
+				if (dcw == false) {
+					cpos.push_back(i);
+					if (scw == true) {
+						scw = false;
+					}
+					else if (scw == false) {
+						scw = true;
+					}
+				}
+			}
+			if (var[i] == '\"') {
+				if (scw == false) {
+					cpos.push_back(i);
+					if (dcw == true) {
+						dcw = false;
+					}
+					else if (dcw == false) {
+						dcw = true;
+					}
+				}
+			}
+		}
+	}
+	return cpos;
+}
+vector<string> stoc(string str, vector<int> cpos) {
+	vector<string> cvcpstr; //converted cpos to str
+	for (int i = 0; i < cpos.size(); i++) {
+		if (i == cpos.size() - 1) {
+			cvcpstr.push_back(str.substr(cpos[i]));
+		}
+		else {
+			cvcpstr.push_back(str.substr(cpos[i], cpos[i + 1] - cpos[i] + 1));
+			i++;
+		}
+	}
+	return cvcpstr;
 }
 namespace stringX {
 	void replace_all(string& mainString, string stringToReplace, string stringToReplaceWith) {
@@ -202,28 +278,15 @@ namespace stringX {
 	string type_t(string pre) {
 		cout << pre;
 		string input;
-		/*
-		for (int i = 0; i < line; i++) {
-			input.append("\n");
-			cout << "\n";
-		}*/
 		int rowPos = 0;
-		//int linePos = 0;
-		//13 enter?
 		for (int i = 0;;) {
 			i = _getch();
 			if (i == 8) {
 				if (input.size() > 0 && rowPos > 0) {
 					if (rowPos == input.size()) {
-						//cout << "\b \b";
 						input.pop_back();
 						ok(input, pre, line);
 						cout << " \b";
-						/*
-						if (input.substr(input.size() - 1) == "\n") {
-							linePos = linePos - 1;
-						}
-						*/
 						rowPos = rowPos - 1;
 					}
 					else {
@@ -233,13 +296,6 @@ namespace stringX {
 						for (int i = 0; i < input.size() - rowPos; i++) {
 							cout << "\b";
 						}
-						/*
-						cout << " \b";*/
-						/*
-						if (input.substr(input.size() - 1) == "\n") {
-							linePos = linePos - 1;
-						}
-						*/
 						rowPos = rowPos - 1;
 					}
 				}
@@ -250,7 +306,6 @@ namespace stringX {
 						if (rowPos == input.size()) {
 							cout << endl;
 							input = input + "\n";
-							//linePos = linePos + 1;
 							rowPos = rowPos + 1;
 						}
 						else {
@@ -263,7 +318,6 @@ namespace stringX {
 							for (int i = 0; i < input.substr(rowPos - 1).size(); i++) {
 								cout << "\b";
 							}
-							//linePos = linePos + 1;
 							rowPos = rowPos + 1;
 						}
 					}
@@ -343,6 +397,71 @@ namespace stringX {
 		return input;
 	}
 }
+void boolcomp(string input, string data, vector<string> & var){
+	string b4eq;
+	string afeq;
+	strfind = false;
+	bool int1 = false; // something before bcmp
+	//bool int2 = false; // something after bcmp
+	vector<int> cpos = gstp(var[1]);
+	string bcmp = rsfbc(cpos, var[1]);
+	if (stringX::numOfStr(bcmp, "==") == 1) {
+		gsbas(bcmp, "==", afeq, b4eq);
+		if (b4eq.find_first_not_of(" ") != string::npos) {
+			if (int1 == false) {
+				int1 = true;
+			}
+		}
+		if (afeq.find_first_not_of(" ") != string::npos) {
+			if (int1 == true) {
+				//what to do if both comparisons are bool/int
+				vector<string> both = { afeq,b4eq };
+				rs(both);
+				afeq = both[0];
+				b4eq = both[1];
+				if (afeq == "true") {
+					afeq = "1";
+				}
+				else if (afeq == "false") {
+					afeq = "0";
+				}
+				if (b4eq == "true") {
+					b4eq = "1";
+				}
+				else if (b4eq == "false") {
+					b4eq = "0";
+				}
+
+				if (afeq == b4eq) {
+					var[1] = "true";
+				}
+				else {
+					var[1] = "false";
+				}
+			}
+			else {
+				error("cannot compare string by bool/int!", input, data, afeq, false);
+			}
+		}
+		else {
+			vector<string> strcomp = stoc(var[1], cpos);
+			if (strcomp.size() == 2) {
+				if (strcomp[0] == strcomp[1]) {
+					var[1] = "true";
+				}
+				else {
+					var[1] = "false";
+				}
+			}
+			else {
+				error("critical error has occured while trying to process boolean comparison!", input, data, var[1], false);
+			}
+		}
+	}
+	else if (stringX::numOfStr(bcmp, "==") > 1) {
+		error("boolean comparison can only have one pair of equal symbols!", input, bcmp, "==", false);
+	}
+}
 int str(vector<string> & var, string input, string data) {
 	if (stringX::numOfStr(var[1], "\"") == 2) {
 		rs(var);
@@ -415,7 +534,6 @@ void precompile(vector<string> var, string input, string data, function<vector<s
 	dt = data;
 	strfind = true;
 	int strr = str(var, input, data);
-	strfind = false;
 	rc(var[1]);
 	if (strr != NULL && strr != -1) {
 		ifstr(var);
@@ -618,6 +736,7 @@ void compile(string input, string data) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
+			boolcomp(input, data, b);
 			if (str(b, input, data) == DOUBLE) {
 				int form = format(b, DOUBLE);
 				if (form == 1 || form == -1) {
@@ -708,23 +827,9 @@ void compile(string input, string data) {
 		vector<string> var;
 		var.push_back(data.substr(0, data.find("=")));
 		var.push_back(data.substr(data.find("=") + 1));
-		/*
-		cout << var.size();
-		if (var.size() < 2) {
-			if (data.find(var[0]) > data.find("=")) {
-				cerr << "variable name is empty!";
-				return;
-			}
-			else if (data.find(var[0]) < data.find("=")) {
-				cerr << "variable value is empty!";
-				return;
-			}
-			else {
-				cerr << "illegal variable! possibly missing both value and name!";
-				return;
-			}
-			return;
-		}*/
+		rs(var);
+		boolcomp(input,data,var);
+		//-----------
 		if ((var[0].find_first_not_of("") == string::npos || var[0].find_first_not_of(" ") == string::npos) && (var[1].find_first_not_of("") == string::npos || var[1].find_first_not_of(" ") == string::npos)) {
 			error("missing variable name and value!", input, data, "", false);
 			return;
@@ -737,6 +842,7 @@ void compile(string input, string data) {
 			error("variable value is empty!", input, data, var[1], false);
 			return;
 		}
+		//-----------
 		if (str(var, input, data) == DOUBLE) {
 			int form = format(var, DOUBLE);
 			if (form == 1 || form == -1) {
@@ -776,7 +882,4 @@ int main()
 		cout << endl;
 		line++;
 	}
-	/*
-	if (stringX::numOfStr(input, "\n") > 0) {
-	}*/
 }
