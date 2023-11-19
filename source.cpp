@@ -1,3 +1,4 @@
+//fix interpreter only removing one part of boolean comparison string 
 #include <iostream>
 #include <Windows.h>
 #include <string>
@@ -731,13 +732,17 @@ void compile(string input, string data) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
+			if (b[1].find_first_not_of("") == string::npos || b[1].find_first_not_of(" ") == string::npos) {
+				cout << "";
+				return;
+			}
 			boolcomp(input, data, b);
 			if (str(b, input, data) == DOUBLE) {
 				int form = format(b, DOUBLE);
 				if (form == 1 || form == -1) {
 					return;
 				}
-			} 
+			}
 			else if (str(b, input, data) == SINGLE) {
 				int form = format(b, SINGLE);
 				if (form == 1 || form == -1) {
@@ -759,6 +764,10 @@ void compile(string input, string data) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
+			if (b[1].find_first_not_of("") == string::npos || b[1].find_first_not_of(" ") == string::npos) {
+				error("function parameter 1 is empty!", input, data, "=", false);
+				return;
+			}
 			if (str(b, input, data) == DOUBLE) {
 				int form = format(b, DOUBLE);
 				if (form == 1 || form == -1) {
@@ -788,6 +797,10 @@ void compile(string input, string data) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
+			if (b[1].find_first_not_of("") == string::npos || b[1].find_first_not_of(" ") == string::npos) {
+				error("function parameter 1 is empty!", input, data, "=", false);
+				return;
+			}
 			b.push_back(input);
 			if (str(b, input, data) == DOUBLE) {
 				int form = format(b, DOUBLE);
@@ -822,8 +835,6 @@ void compile(string input, string data) {
 		vector<string> var;
 		var.push_back(data.substr(0, data.find("=")));
 		var.push_back(data.substr(data.find("=") + 1));
-		rs(var);
-		boolcomp(input,data,var);
 		//-----------
 		if ((var[0].find_first_not_of("") == string::npos || var[0].find_first_not_of(" ") == string::npos) && (var[1].find_first_not_of("") == string::npos || var[1].find_first_not_of(" ") == string::npos)) {
 			error("missing variable name and value!", input, data, "", false);
@@ -834,10 +845,12 @@ void compile(string input, string data) {
 			return;
 		}
 		if (var[1].find_first_not_of("") == string::npos || var[1].find_first_not_of(" ") == string::npos) {
-			error("variable value is empty!", input, data, var[1], false);
+			error("variable value is empty!", input, data, "=", false);
 			return;
 		}
 		//-----------
+		rs(var);
+		boolcomp(input,data,var);
 		if (str(var, input, data) == DOUBLE) {
 			int form = format(var, DOUBLE);
 			if (form == 1 || form == -1) {
