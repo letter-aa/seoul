@@ -1,4 +1,3 @@
-//fix interpreter only removing one part of boolean comparison string 
 #include <iostream>
 #include <Windows.h>
 #include <string>
@@ -123,27 +122,7 @@ void rc(string& var) {
 // check if quote has \ and check if there is more after == cut
 // for loop each character if quote then continue, if \, check if next char is quote or not, 
 // if quote, skip two/one chars and continue until found quote without \ before quote
-string rsfbc(vector<int> cpos, string var) { // remove bool comparisons with quotes from boolean comparison
-	string tvar = var;
-	for (int i = 0; i < cpos.size(); i++) {
-		if (i == cpos.size() - 1) {
-			tvar = var.substr(cpos[i]);
-		}
-		else {
-			tvar = var.substr(0, cpos[i]) + var.substr(cpos[i + 1] - cpos[i] + 1);
-		//	tvar.erase(cpos[i], cpos[i + 1] - cpos[i] + 1);
-			i++;
-		}
-	}
-	if (tvar.find("\"") != string::npos) {
-		tvar = "==";
-	}
-	else if (tvar.find("'") != string::npos) {
-		tvar = "==";
-	}
-	return tvar;
-}
-vector<int> gstp(string var) { // get str pos from bool comparison
+vector<int> stoc(string var) { // str to cpos (COMMA POS)
 	vector<int> cpos;
 	bool dcw = false; //double comma wait
 	bool scw = false; //single comma wait
@@ -179,7 +158,7 @@ vector<int> gstp(string var) { // get str pos from bool comparison
 	}
 	return cpos;
 }
-vector<string> stoc(string str, vector<int> cpos) {
+vector<string> ctos(string str, vector<int> cpos) { //cpos to str
 	vector<string> cvcpstr; //converted cpos to str
 	for (int i = 0; i < cpos.size(); i++) {
 		if (i == cpos.size() - 1) {
@@ -191,6 +170,17 @@ vector<string> stoc(string str, vector<int> cpos) {
 		}
 	}
 	return cvcpstr;
+}
+string rsfbc(string var) { // remove bool comparisons with quotes from boolean comparison
+	vector<int> cpos = stoc(var);
+	vector<string> s = ctos(var, cpos);
+	string tvar = var;
+	for (int i = 0; i < s.size(); i++) {
+		if (tvar.find(s[i]) != string::npos) {
+			tvar = tvar.substr(0, tvar.find(s[i])) + tvar.substr(tvar.find(s[i]) + s[i].size());
+		}
+	}
+	return tvar;
 }
 namespace stringX {
 	void replace_all(string& mainString, string stringToReplace, string stringToReplaceWith) {
@@ -397,71 +387,6 @@ namespace stringX {
 		return input;
 	}
 }
-void boolcomp(string input, string data, vector<string> & var){
-	string b4eq;
-	string afeq;
-	strfind = false;
-	bool int1 = false; // something before bcmp
-	//bool int2 = false; // something after bcmp
-	vector<int> cpos = gstp(var[1]);
-	string bcmp = rsfbc(cpos, var[1]);
-	if (stringX::numOfStr(bcmp, "==") == 1) {
-		gsbas(bcmp, "==", afeq, b4eq);
-		if (b4eq.find_first_not_of(" ") != string::npos) {
-			if (int1 == false) {
-				int1 = true;
-			}
-		}
-		if (afeq.find_first_not_of(" ") != string::npos) {
-			if (int1 == true) {
-				//what to do if both comparisons are bool/int
-				vector<string> both = { afeq,b4eq };
-				rs(both);
-				afeq = both[0];
-				b4eq = both[1];
-				if (afeq == "true") {
-					afeq = "1";
-				}
-				else if (afeq == "false") {
-					afeq = "0";
-				}
-				if (b4eq == "true") {
-					b4eq = "1";
-				}
-				else if (b4eq == "false") {
-					b4eq = "0";
-				}
-
-				if (afeq == b4eq) {
-					var[1] = "true";
-				}
-				else {
-					var[1] = "false";
-				}
-			}
-			else {
-				error("cannot compare string by bool/int!", input, data, afeq, false);
-			}
-		}
-		else {
-			vector<string> strcomp = stoc(var[1], cpos);
-			if (strcomp.size() == 2) {
-				if (strcomp[0] == strcomp[1]) {
-					var[1] = "true";
-				}
-				else {
-					var[1] = "false";
-				}
-			}
-			else {
-				error("critical error has occured while trying to process boolean comparison!", input, data, var[1], false);
-			}
-		}
-	}
-	else if (stringX::numOfStr(bcmp, "==") > 1) {
-		error("boolean comparison can only have one pair of equal symbols!", input, bcmp, "==", false);
-	}
-}
 int str(vector<string> & var, string input, string data) {
 	if (stringX::numOfStr(var[1], "\"") == 2) {
 		rs(var);
@@ -527,6 +452,71 @@ int str(vector<string> & var, string input, string data) {
 	}
 	else {
 		return NULL;
+	}
+}
+void boolcomp(string input, string data, vector<string>& var) {
+	string b4eq;
+	string afeq;
+	strfind = false;
+	bool int1 = false; // something before bcmp
+	//bool int2 = false; // something after bcmp
+	vector<int> cpos = stoc(var[1]);
+	string bcmp = rsfbc(var[1]);
+	if (stringX::numOfStr(bcmp, "==") == 1) {
+		gsbas(bcmp, "==", afeq, b4eq);
+		if (b4eq.find_first_not_of(" ") != string::npos) {
+			if (int1 == false) {
+				int1 = true;
+			}
+		}
+		if (afeq.find_first_not_of(" ") != string::npos) {
+			if (int1 == true) {
+				//what to do if both comparisons are bool/int
+				vector<string> both = { afeq,b4eq };
+				rs(both);
+				afeq = both[0];
+				b4eq = both[1];
+				if (afeq == "true") {
+					afeq = "1";
+				}
+				else if (afeq == "false") {
+					afeq = "0";
+				}
+				if (b4eq == "true") {
+					b4eq = "1";
+				}
+				else if (b4eq == "false") {
+					b4eq = "0";
+				}
+
+				if (afeq == b4eq) {
+					var[1] = "true";
+				}
+				else {
+					var[1] = "false";
+				}
+			}
+			else {
+				error("cannot compare string by bool/int!", input, data, afeq, false);
+			}
+		}
+		else {
+			vector<string> strcomp = ctos(var[1], cpos);
+			if (strcomp.size() == 2) {
+				if (strcomp[0] == strcomp[1]) {
+					var[1] = "true";
+				}
+				else {
+					var[1] = "false";
+				}
+			}
+			else if (strcomp.size() > 2) {
+				error("critical error has occured while trying to process boolean comparison!", input, data, var[1], false);
+			}
+		}
+	}
+	else if (stringX::numOfStr(bcmp, "==") > 1) {
+		error("boolean comparison can only have one pair of equal symbols!", input, bcmp, "==", false);
 	}
 }
 void precompile(vector<string> var, string input, string data, function<vector<string>> ifstr, function<vector<string>> els) {
@@ -597,11 +587,11 @@ void elstext(vector<string> var) {
 	map<string, bool>::iterator bo = boolv.begin();
 	int inc = 0;
 	if (var[1] == "true") {
-		cout << true;
+		cout << var[1];
 		return;
 	}
 	else if (var[1] == "false") {
-		cout << false;
+		cout << var[1];
 		return;
 	}
 	else if (stringX::isnum(var[1])) {
@@ -636,7 +626,12 @@ void elstext(vector<string> var) {
 	}
 	while (bo != boolv.end()) {
 		if (var[1] == bo->first) {
-			cout << bo->second;
+			if (bo->second == true) {
+				cout << "true";
+			}
+			else if (bo->second == false) {
+				cout << "false";
+			}
 			return;
 		}
 	}
