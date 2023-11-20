@@ -3,6 +3,15 @@ the worst programming language to ever exist!
 
 ### functions:
 ```
+function(arg,arg,etc.)
+```
+or
+```
+function()arg,arg,etc.
+```
+(dont ask why its like that)
+
+```
 console.text(arg1)
 ```
 ```
