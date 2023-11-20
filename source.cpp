@@ -29,12 +29,15 @@ string it;
 string dt;
 string cst;
 bool strfind = false;
-void ok(string input, string pre, int line) {
+void setxy(int x, int y) {
 	COORD c;
-	c.X = 0;
-	c.Y = line;
+	c.X = x;
+	c.Y = y;
 
 	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
+}
+void ok(string input, string pre, int line) {
+	setxy(0, line);
 	cout << pre << input;
 }
 int woc() {
@@ -85,10 +88,18 @@ int preformat(string & var, string quote) {
 	return -1;
 }
 void rs(vector<string>& var) {
-	var[0] = var[0].substr(var[0].find_first_not_of("	"), var[0].find_last_not_of("	") + 1);
-	var[1] = var[1].substr(var[1].find_first_not_of("	"), var[1].find_last_not_of("	") + 1);
-	var[0] = var[0].substr(var[0].find_first_not_of(" "), var[0].find_last_not_of(" ") + 1);
-	var[1] = var[1].substr(var[1].find_first_not_of(" "), var[1].find_last_not_of(" ") + 1);
+	if (var[0] != "" && var[1] != "") {
+		var[0] = var[0].substr(var[0].find_first_not_of("	"), var[0].find_last_not_of("	") + 1);
+		var[1] = var[1].substr(var[1].find_first_not_of("	"), var[1].find_last_not_of("	") + 1);
+		var[0] = var[0].substr(var[0].find_first_not_of(" "), var[0].find_last_not_of(" ") + 1);
+		var[1] = var[1].substr(var[1].find_first_not_of(" "), var[1].find_last_not_of(" ") + 1);
+	}
+}
+void rs(string & var) {
+	if (var != "") {
+		var = var.substr(var.find_first_not_of("	"), var.find_last_not_of("	") + 1);
+		var = var.substr(var.find_first_not_of(" "), var.find_last_not_of(" ") + 1);
+	}
 }
 int format(vector<string>& var, int quotes) { // second param is SINGLE or DOUBLE
 	rs(var);
@@ -380,11 +391,11 @@ namespace stringX {
 			}
 		}
 		CONSOLE_SCREEN_BUFFER_INFO csbi; 
-		GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi); 
-		line = csbi.dwCursorPosition.Y;
+		GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi);
 		for (int i = 0; i <= numOfStr(input, "\n"); i++) {
 			line++;
 		}
+		line = csbi.dwCursorPosition.Y + 1;
 		return input;
 	}
 }
@@ -455,7 +466,7 @@ int str(vector<string> & var, string input, string data) {
 		return NULL;
 	}
 }
-void boolcomp(string input, string data, vector<string>& var) {
+bool boolcomp(string input, string data, vector<string>& var) {
 	string b4eq;
 	string afeq;
 	strfind = false;
@@ -498,7 +509,14 @@ void boolcomp(string input, string data, vector<string>& var) {
 				}
 			}
 			else {
-				error("cannot compare string by bool/int!", input, data, afeq, false);
+				if (cpos.size() > 0) {
+					error("cannot compare string by bool/int!", input, data, afeq, false);
+					return false;
+				}
+				else {
+					error("malformed number or bool!", input, data, "(", false);
+					return false;
+				}
 			}
 		}
 		else {
@@ -513,12 +531,15 @@ void boolcomp(string input, string data, vector<string>& var) {
 			}
 			else if (strcomp.size() > 2) {
 				error("critical error has occured while trying to process boolean comparison!", input, data, var[1], false);
+				return false;
 			}
 		}
 	}
 	else if (stringX::numOfStr(bcmp, "==") > 1) {
 		error("boolean comparison can only have one pair of equal symbols!", input, bcmp, "==", false);
+		return false;
 	}
+	return true;
 }
 void precompile(vector<string> var, string input, string data, function<vector<string>> ifstr, function<vector<string>> els) {
 	it = input;
@@ -570,10 +591,8 @@ void elsvar(vector<string> var) {
 		}
 		return;
 	}
-	else {
-		error("illegal number!", it, dt, var[1], false);
-		return;
-	}
+	error("malformed number or bool!", it, dt, var[1], false);
+	return;
 }
 void ifstrtext(vector<string> var) {
 	int a = stringX::numOfStr(var[1], "\n");
@@ -736,7 +755,10 @@ void compile(string input, string data) {
 				cout << "";
 				return;
 			}
-			boolcomp(input, data, b);
+			bool bc = boolcomp(input, data, b);
+			if (bc == false) {
+				return;
+			}
 			if (str(b, input, data) == DOUBLE) {
 				int form = format(b, DOUBLE);
 				if (form == 1 || form == -1) {
@@ -850,7 +872,10 @@ void compile(string input, string data) {
 		}
 		//-----------
 		rs(var);
-		boolcomp(input,data,var);
+		bool bc = boolcomp(input, data, var);
+		if (bc == false) {
+			return;
+		}
 		if (str(var, input, data) == DOUBLE) {
 			int form = format(var, DOUBLE);
 			if (form == 1 || form == -1) {
@@ -884,7 +909,8 @@ int main()
 		cout << endl;
 		vector<string> ans;
 		stringX::splitString(input, ans, "\n");
-		for (auto data : ans) {
+		for (auto & data : ans) {
+			rs(data);
 			compile(tinput, data);
 		}
 		cout << endl;
