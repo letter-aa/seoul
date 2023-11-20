@@ -53,3 +53,16 @@ or
 string3 = "cool\nawesome!"
 ```
 
+#### boolean comparisons:
+```
+==
+```
+eg.
+```
+console.text(1 == 1)
+```
+or
+```
+boolean3 = "bruh" == "hi"
+```
+
