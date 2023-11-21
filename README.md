@@ -66,3 +66,16 @@ or
 boolean3 = "bruh" == "hi"
 ```
 
+#### if statements:
+```
+if(boolean comparison)
+code
+end
+```
+eg.
+```
+if("hi" == "hi")
+console.text("true!")
+end
+```
+
