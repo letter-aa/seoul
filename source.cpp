@@ -1,4 +1,4 @@
-//fix interpreter only removing one part of boolean comparison string 
+//still adding if statement
 #include <iostream>
 #include <Windows.h>
 #include <string>
@@ -20,7 +20,8 @@ vector<string> funcs =
 {
 	"console.text",
 	"save",
-	"load"
+	"load",
+//	"if"
 };
 map<string, string> strv;
 map<string, int> intv;
@@ -134,10 +135,10 @@ void rc(string& var) {
 // check if quote has \ and check if there is more after == cut
 // for loop each character if quote then continue, if \, check if next char is quote or not, 
 // if quote, skip two/one chars and continue until found quote without \ before quote
-vector<int> stoc(string var) { // str to cpos (COMMA POS)
-	vector<int> cpos;
-	bool dcw = false; //double comma wait
-	bool scw = false; //single comma wait
+vector<int> stoq(string var) { // str to qpos (QUOTE POS)
+	vector<int> qpos;
+	bool dcw = false; //double QUOTE wait
+	bool scw = false; //single QUOTE wait
 	for (int i = 0; i < var.size() - 1; i++) {
 		if (var[i] == '\\') {
 			i++;
@@ -146,7 +147,7 @@ vector<int> stoc(string var) { // str to cpos (COMMA POS)
 		else {
 			if (var[i] == '\'') {
 				if (dcw == false) {
-					cpos.push_back(i);
+					qpos.push_back(i);
 					if (scw == true) {
 						scw = false;
 					}
@@ -157,7 +158,7 @@ vector<int> stoc(string var) { // str to cpos (COMMA POS)
 			}
 			if (var[i] == '\"') {
 				if (scw == false) {
-					cpos.push_back(i);
+					qpos.push_back(i);
 					if (dcw == true) {
 						dcw = false;
 					}
@@ -168,24 +169,24 @@ vector<int> stoc(string var) { // str to cpos (COMMA POS)
 			}
 		}
 	}
-	return cpos;
+	return qpos;
 }
-vector<string> ctos(string str, vector<int> cpos) { //cpos to str
-	vector<string> cvcpstr; //converted cpos to str
-	for (int i = 0; i < cpos.size(); i++) {
-		if (i == cpos.size() - 1) {
-			cvcpstr.push_back(str.substr(cpos[i]));
+vector<string> qtos(string str, vector<int> qpos) { //qpos to str
+	vector<string> cvqpstr; //converted qpos to str
+	for (int i = 0; i < qpos.size(); i++) {
+		if (i == qpos.size() - 1) {
+			cvqpstr.push_back(str.substr(qpos[i]));
 		}
 		else {
-			cvcpstr.push_back(str.substr(cpos[i], cpos[i + 1] - cpos[i] + 1));
+			cvqpstr.push_back(str.substr(qpos[i], qpos[i + 1] - qpos[i] + 1));
 			i++;
 		}
 	}
-	return cvcpstr;
+	return cvqpstr;
 }
 string rsfbc(string var) { // remove bool comparisons with quotes from boolean comparison
-	vector<int> cpos = stoc(var);
-	vector<string> s = ctos(var, cpos);
+	vector<int> qpos = stoq(var);
+	vector<string> s = qtos(var, qpos);
 	string tvar = var;
 	for (int i = 0; i < s.size(); i++) {
 		if (tvar.find(s[i]) != string::npos) {
@@ -466,13 +467,112 @@ int str(vector<string> & var, string input, string data) {
 		return NULL;
 	}
 }
+int str(string var, string input, string data) {
+	if (stringX::numOfStr(var, "\"") == 2) {
+		rs(var);
+		if (var[0] == '\'' && var[var.size() - 1] == '\'') {
+			stringX::replace_all(var, "\\n", "\n");
+			return SINGLE;
+		}
+		stringX::replace_all(var, "\\n", "\n");
+		return DOUBLE;
+	}
+	else if (stringX::numOfStr(var, "\"") == 1) {
+		error("forgot \" !", input, data, "\"", false);
+		return -1;
+	}
+	else if (stringX::numOfStr(var, "\"") > 2) {
+		int find = var.find("\"");
+		find = var.find("\"", find + 1);
+		for (int i = 0; i < stringX::numOfStr(var, "\"") - 2; i++) {
+			if (var[find - 1] == '\\') {
+				if (strfind == true) {
+					var = var.substr(0, find - 1) + var.substr(find);
+				}
+				find = var.find("\"", find + 1);
+				continue;
+			}
+			else {
+				error("forgot \"\\\" before \"!", input, data, "\"", true);
+				return -1;
+			}
+		}
+		return DOUBLE;
+	}
+	else if (stringX::numOfStr(var, "'") == 2) {
+		rs(var);
+		if (var[0] == '"' && var[var.size() - 1] == '"') {
+			stringX::replace_all(var, "\\n", "\n");
+			return DOUBLE;
+		}
+		stringX::replace_all(var, "\\n", "\n");
+		return SINGLE;
+	}
+	else if (stringX::numOfStr(var, "'") == 1) {
+		error("forgot \"'\" !", input, data, "'", false);
+		return -1;
+	}
+	else if (stringX::numOfStr(var, "'") > 2) {
+		int find = var.find("'");
+		find = var.find("'", find + 1);
+		for (int i = 0; i < stringX::numOfStr(var, "'") - 2; i++) {
+			if (var[find - 1] == '\\') {
+				if (strfind == true) {
+					var = var.substr(0, find - 1) + var.substr(find);
+				}
+				find = var.find("'", find + 1);
+				continue;
+			}
+			else {
+				error("forgot \"\\\" before '!", input, data, "'", true);
+				return -1;
+			}
+		}
+		return SINGLE;
+	}
+	else {
+		return NULL;
+	}
+}
+void exfunc1(string & eq) {
+	map<string, string>::iterator strr = strv.begin();
+	map<string, int>::iterator ii = intv.begin();
+	map<string, bool>::iterator boo = boolv.begin();
+	while (strr != strv.end()) {
+		if (eq == strr->first) {
+			eq = '"' + strr->second + '"';
+			return;
+		}
+		++strr;
+	}
+	while (ii != intv.end()) {
+		if (eq == ii->first) {
+			eq = to_string(ii->second);
+			return;
+		}
+		++ii;
+	}
+	while (boo != boolv.end()) {
+		if (eq == boo->first) {
+			if (boo->second == true) {
+				eq = to_string(boo->second);
+				return;
+			}
+			else if (boo->second == false) {
+				eq = to_string(boo->second);
+				return;
+			}
+		}
+		++boo;
+	}
+}
 bool boolcomp(string input, string data, vector<string>& var) {
 	string b4eq;
 	string afeq;
 	strfind = false;
 	bool int1 = false; // something before bcmp
 	//bool int2 = false; // something after bcmp
-	vector<int> cpos = stoc(var[1]);
+	vector<int> qpos = stoq(var[1]);
 	string bcmp = rsfbc(var[1]);
 	if (stringX::numOfStr(bcmp, "==") == 1) {
 		gsbas(bcmp, "==", afeq, b4eq);
@@ -488,6 +588,43 @@ bool boolcomp(string input, string data, vector<string>& var) {
 				rs(both);
 				afeq = both[0];
 				b4eq = both[1];
+				exfunc1(afeq);
+				exfunc1(b4eq);
+				string combine = afeq + " == " + b4eq;
+				bcmp = rsfbc(combine);
+				gsbas(bcmp, "==", afeq, b4eq);
+				both = { afeq,b4eq };
+				rs(both);
+				afeq = both[0];
+				b4eq = both[1];
+				int strcheck = str(afeq, input, data);
+				if (strcheck == 0) {
+					if (stringX::isnum(afeq)) {
+						long long conv = strtoll(var[1].c_str(), nullptr, 10);
+						if (conv > INT64_MAX) {
+							error("number is too big! boolean comparison could not be run.", it, dt, var[1], false);
+							line++;
+						}
+					}
+					else {
+						error("malformed number or bool!", it, dt, var[1], false);
+						return false;
+					}
+				}
+				strcheck = str(b4eq, input, data);
+				if (strcheck == 0) {
+					if (stringX::isnum(b4eq)) {
+						long long conv = strtoll(var[1].c_str(), nullptr, 10);
+						if (conv > INT64_MAX) {
+							error("number is too big! boolean comparison could not be run.", it, dt, var[1], false);
+							line++;
+						}
+					}
+					else {
+						error("malformed number or bool!", it, dt, var[1], false);
+						return false;
+					}
+				}
 				if (afeq == "true") {
 					afeq = "1";
 				}
@@ -509,7 +646,7 @@ bool boolcomp(string input, string data, vector<string>& var) {
 				}
 			}
 			else {
-				if (cpos.size() > 0) {
+				if (qpos.size() > 0) {
 					error("cannot compare string by bool/int!", input, data, afeq, false);
 					return false;
 				}
@@ -520,7 +657,7 @@ bool boolcomp(string input, string data, vector<string>& var) {
 			}
 		}
 		else {
-			vector<string> strcomp = ctos(var[1], cpos);
+			vector<string> strcomp = qtos(var[1], qpos);
 			if (strcomp.size() == 2) {
 				if (strcomp[0] == strcomp[1]) {
 					var[1] = "true";
@@ -637,13 +774,17 @@ void elstext(vector<string> var) {
 			}
 			return;
 		}
+		++str;
 	}
+
 	while (i != intv.end()) {
 		if (var[1] == i->first) {
 			cout << i->second;
 			return;
 		}
+		++i;
 	}
+
 	while (bo != boolv.end()) {
 		if (var[1] == bo->first) {
 			if (bo->second == true) {
@@ -654,6 +795,7 @@ void elstext(vector<string> var) {
 			}
 			return;
 		}
+		++bo;
 	}
 	error("malformed number or bool!", it, dt, var[1], false);
 	return;
@@ -852,6 +994,31 @@ void compile(string input, string data) {
 			return;
 		}
 	}
+	/*
+	else if (data.substr(0, funcs[3].size()) == funcs[3]) {
+		if (stringX::numOfStr(data, "(") == 1 && stringX::numOfStr(data, ")") == 1) {
+			vector<string> b;
+			stringX::splitString(data, b, "(");
+			stringX::replace(b[1], ")", "", NULL);
+			if (b[1].find_first_not_of("") == string::npos || b[1].find_first_not_of(" ") == string::npos) {
+				error("if statement comparison is empty!", input, data, "=", false);
+				return;
+			}
+			bool bc = boolcomp(input, data, b);
+			if (bc == false) {
+				return;
+			}
+			if (bc == true) {
+				if (b[1] == "true") {
+					cout << "hi";
+				}
+			}
+		}
+		else {
+			error("function has been called inavlidly", input, data, "(", false);
+			return;
+		}
+	}*/
 	//VARIABLES
 	else if (stringX::numOfStr(data, "=") > 0) {
 		vector<string> var;
