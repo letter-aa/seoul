@@ -13,7 +13,7 @@
 #define DOWN_ARROW 80
 #define SINGLE 1
 #define DOUBLE 2
-template<typename T> using function = void (*)(T);
+template<typename T, typename...a> using function = T(*)(a...);
 int line = 0;
 using namespace std;
 vector<string> funcs =
@@ -21,7 +21,7 @@ vector<string> funcs =
 	"console.text",
 	"save",
 	"load",
-//	"if"
+	"if"
 };
 map<string, string> strv;
 map<string, int> intv;
@@ -66,6 +66,10 @@ void error(string error, string input, string data, string lookfor, bool next) {
 void gsbas(string var, string midStr, string & after, string & before) { //get strings before and after main string
 	after = var.substr(var.find(midStr) + midStr.size());
 	before = var.substr(0, var.find(midStr));
+}
+void gsbas(string var, int substr1, int substr2, string& after, string& before) { //get strings before and after main string
+	after = var.substr(substr2);
+	before = var.substr(0, substr1);
 }
 int preformat(string & var, string quote) {
 	if (var.find(quote) != string::npos) {
@@ -115,6 +119,27 @@ int format(vector<string>& var, int quotes) { // second param is SINGLE or DOUBL
 	}
 	else if (quotes == DOUBLE) {
 		int h = preformat(var[1], "\"");
+		if (h == 1) {
+			return 1;
+		}
+		else {
+			return 0;
+		}
+	}
+}
+int format(string var, int quotes) { // second param is SINGLE or DOUBLE
+	rs(var);
+	if (quotes == SINGLE) {
+		int h = preformat(var, "'");
+		if (h == 1) {
+			return 1;
+		}
+		else {
+			return 0;
+		}
+	}
+	else if (quotes == DOUBLE) {
+		int h = preformat(var, "\"");
 		if (h == 1) {
 			return 1;
 		}
@@ -571,9 +596,10 @@ bool boolcomp(string input, string data, vector<string>& var) {
 	string afeq;
 	strfind = false;
 	bool int1 = false; // something before bcmp
-	//bool int2 = false; // something after bcmp
+	bool int2 = false; // something after bcmp
 	vector<int> qpos = stoq(var[1]);
 	string bcmp = rsfbc(var[1]);
+	vector<string> strcomp = qtos(var[1], qpos);
 	if (stringX::numOfStr(bcmp, "==") == 1) {
 		gsbas(bcmp, "==", afeq, b4eq);
 		if (b4eq.find_first_not_of(" ") != string::npos) {
@@ -582,92 +608,109 @@ bool boolcomp(string input, string data, vector<string>& var) {
 			}
 		}
 		if (afeq.find_first_not_of(" ") != string::npos) {
-			if (int1 == true) {
-				//what to do if both comparisons are bool/int
-				vector<string> both = { afeq,b4eq };
-				rs(both);
-				afeq = both[0];
-				b4eq = both[1];
-				exfunc1(afeq);
-				exfunc1(b4eq);
-				string combine = afeq + " == " + b4eq;
-				bcmp = rsfbc(combine);
-				gsbas(bcmp, "==", afeq, b4eq);
-				both = { afeq,b4eq };
-				rs(both);
-				afeq = both[0];
-				b4eq = both[1];
-				int strcheck = str(afeq, input, data);
-				if (strcheck == 0) {
-					if (stringX::isnum(afeq)) {
-						long long conv = strtoll(var[1].c_str(), nullptr, 10);
-						if (conv > INT64_MAX) {
-							error("number is too big! boolean comparison could not be run.", it, dt, var[1], false);
-							line++;
-						}
+			if (int2 == false) {
+				int2 = true;
+			}
+		}
+		if (int1 == true && int2 == true) {
+			//what to do if both comparisons are bool/int
+			vector<string> both = { afeq,b4eq };
+			rs(both);
+			afeq = both[0];
+			b4eq = both[1];
+			exfunc1(afeq);
+			exfunc1(b4eq);
+			string combine = afeq + " == " + b4eq;
+			bcmp = rsfbc(combine);
+			gsbas(bcmp, "==", afeq, b4eq);
+			both = { afeq,b4eq };
+			rs(both);
+			afeq = both[0];
+			b4eq = both[1];
+			int strcheck = str(afeq, input, data);
+			if (strcheck == 0) {
+				if (stringX::isnum(afeq)) {
+					long long conv = strtoll(var[1].c_str(), nullptr, 10);
+					if (conv > INT64_MAX) {
+						error("number is too big! boolean comparison could not be run.", it, dt, var[1], false);
+						line++;
 					}
-					else {
-						error("malformed number or bool!", it, dt, var[1], false);
-						return false;
-					}
-				}
-				strcheck = str(b4eq, input, data);
-				if (strcheck == 0) {
-					if (stringX::isnum(b4eq)) {
-						long long conv = strtoll(var[1].c_str(), nullptr, 10);
-						if (conv > INT64_MAX) {
-							error("number is too big! boolean comparison could not be run.", it, dt, var[1], false);
-							line++;
-						}
-					}
-					else {
-						error("malformed number or bool!", it, dt, var[1], false);
-						return false;
-					}
-				}
-				if (afeq == "true") {
-					afeq = "1";
-				}
-				else if (afeq == "false") {
-					afeq = "0";
-				}
-				if (b4eq == "true") {
-					b4eq = "1";
-				}
-				else if (b4eq == "false") {
-					b4eq = "0";
-				}
-
-				if (afeq == b4eq) {
-					var[1] = "true";
 				}
 				else {
-					var[1] = "false";
+					error("malformed number or bool!", it, dt, var[1], false);
+					return false;
+				}
+			}
+			strcheck = str(b4eq, input, data);
+			if (strcheck == 0) {
+				if (stringX::isnum(b4eq)) {
+					long long conv = strtoll(var[1].c_str(), nullptr, 10);
+					if (conv > INT64_MAX) {
+						error("number is too big! boolean comparison could not be run.", it, dt, var[1], false);
+						line++;
+					}
+				}
+				else {
+					error("malformed number or bool!", it, dt, var[1], false);
+					return false;
+				}
+			}
+			if (afeq == "true") {
+				afeq = "1";
+			}
+			else if (afeq == "false") {
+				afeq = "0";
+			}
+			if (b4eq == "true") {
+				b4eq = "1";
+			}
+			else if (b4eq == "false") {
+				b4eq = "0";
+			}
+
+			if (afeq == b4eq) {
+				var[1] = "true";
+			}
+			else {
+				var[1] = "false";
+			}
+		}
+		else if (int1 == false && int2 == false) {
+			gsbas(var[1], var[1].substr(qpos[1] + 1).find("==") + qpos[1] + 1, var[1].substr(qpos[1] + 1).find("==") + qpos[1] + 4, afeq, b4eq);
+			int prestr = str(afeq, input, data);
+			int prestr1 = str(b4eq, input, data);
+			if (prestr == -1 || prestr == 0 || prestr1 == -1 || prestr1 == 0) {
+				return false;
+			}
+			int strcheck = format(afeq, prestr);
+			int strcheck1 = format(b4eq, prestr1);
+			if (strcheck == 0 && strcheck1 == 0) {
+				if (strcomp.size() == 2) {
+					rc(strcomp[0]);
+					rc(strcomp[1]);
+					if (strcomp[0] == strcomp[1]) {
+						var[1] = "true";
+					}
+					else {
+						var[1] = "false";
+					}
+				}
+				else if (strcomp.size() > 2) {
+					error("critical error has occured while trying to process boolean comparison!", input, data, var[1], false);
+					return false;
 				}
 			}
 			else {
-				if (qpos.size() > 0) {
-					error("cannot compare string by bool/int!", input, data, afeq, false);
-					return false;
-				}
-				else {
-					error("malformed number or bool!", input, data, "(", false);
-					return false;
-				}
+				return false;
 			}
 		}
 		else {
-			vector<string> strcomp = qtos(var[1], qpos);
-			if (strcomp.size() == 2) {
-				if (strcomp[0] == strcomp[1]) {
-					var[1] = "true";
-				}
-				else {
-					var[1] = "false";
-				}
+			if (qpos.size() > 0) {
+				error("cannot compare string by bool/int!", input, data, afeq, false);
+				return false;
 			}
-			else if (strcomp.size() > 2) {
-				error("critical error has occured while trying to process boolean comparison!", input, data, var[1], false);
+			else {
+				error("malformed number or bool!", input, data, "(", false);
 				return false;
 			}
 		}
@@ -678,7 +721,7 @@ bool boolcomp(string input, string data, vector<string>& var) {
 	}
 	return true;
 }
-void precompile(vector<string> var, string input, string data, function<vector<string>> ifstr, function<vector<string>> els) {
+void precompile(vector<string> var, string input, string data, function<void, vector<string>> ifstr, function<void, vector<string>> els) {
 	it = input;
 	dt = data;
 	strfind = true;
@@ -886,14 +929,14 @@ void elsload(vector<string> var) {
 	error("malformed number or bool!", it, dt, var[1], false);
 	return;
 }
-void compile(string input, string data) {
+void compile(string input, string data, int & i) {
 	//FUNCTIONS
 	if (data.substr(0, funcs[0].size()) == funcs[0]) {
 		if (stringX::numOfStr(data, "(") == 1 && stringX::numOfStr(data, ")") == 1) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
-			if (b[1].find_first_not_of("") == string::npos || b[1].find_first_not_of(" ") == string::npos) {
+			if (b[1].find_first_not_of("") == string::npos || b[1].find_first_not_of(" ") == string::npos || b[1].find_first_not_of("	") == string::npos) {
 				cout << "";
 				return;
 			}
@@ -928,7 +971,7 @@ void compile(string input, string data) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
-			if (b[1].find_first_not_of("") == string::npos || b[1].find_first_not_of(" ") == string::npos) {
+			if (b[1].find_first_not_of("") == string::npos || b[1].find_first_not_of(" ") == string::npos || b[1].find_first_not_of("	") == string::npos) {
 				error("function parameter 1 is empty!", input, data, "=", false);
 				return;
 			}
@@ -961,7 +1004,7 @@ void compile(string input, string data) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
-			if (b[1].find_first_not_of("") == string::npos || b[1].find_first_not_of(" ") == string::npos) {
+			if (b[1].find_first_not_of("") == string::npos || b[1].find_first_not_of(" ") == string::npos || b[1].find_first_not_of("	") == string::npos) {
 				error("function parameter 1 is empty!", input, data, "=", false);
 				return;
 			}
@@ -985,7 +1028,7 @@ void compile(string input, string data) {
 			vector<string> ans;
 			stringX::splitString(cst, ans, "\n");
 			for (auto data : ans) {
-				compile(cst, data);
+				compile(cst, data, i);
 			}
 			return;
 		}
@@ -994,13 +1037,12 @@ void compile(string input, string data) {
 			return;
 		}
 	}
-	/*
 	else if (data.substr(0, funcs[3].size()) == funcs[3]) {
 		if (stringX::numOfStr(data, "(") == 1 && stringX::numOfStr(data, ")") == 1) {
 			vector<string> b;
 			stringX::splitString(data, b, "(");
 			stringX::replace(b[1], ")", "", NULL);
-			if (b[1].find_first_not_of("") == string::npos || b[1].find_first_not_of(" ") == string::npos) {
+			if (b[1].find_first_not_of("") == string::npos || b[1].find_first_not_of(" ") == string::npos || b[1].find_first_not_of("	") == string::npos) {
 				error("if statement comparison is empty!", input, data, "=", false);
 				return;
 			}
@@ -1010,7 +1052,61 @@ void compile(string input, string data) {
 			}
 			if (bc == true) {
 				if (b[1] == "true") {
-					cout << "hi";
+					int prei = i;
+					bool ifcomplete = false;
+					vector<string> vs;
+					stringX::splitString(input, vs, "\n");
+					if (vs.size() > 1) {
+						while (prei < vs.size()) {
+							++prei;
+							rs(vs[prei]);
+							if (vs[prei] == "end") {
+								ifcomplete = true;
+								break;
+							}
+						}
+						if (ifcomplete == false) {
+							error("if statement was not closed!", input, data, data, false);
+						}
+						while (i < vs.size()) {
+							++i;
+							if (vs[i] == "end") {
+								break;
+							}
+							compile(input, vs[i], i);
+						}
+					}
+					else {
+						error("if statement was not closed!", input, data, data, false);
+					}
+				}
+				else if (b[1] == "false") {
+					int prei = i;
+					bool ifcomplete = false;
+					vector<string> vs;
+					stringX::splitString(input, vs, "\n");
+					if (vs.size() > 1) {
+						while (prei < vs.size()) {
+							++prei;
+							rs(vs[prei]);
+							if (vs[prei] == "end") {
+								ifcomplete = true;
+								break;
+							}
+						}
+						if (ifcomplete == false) {
+							error("if statement was not closed!", input, data, data, false);
+						}
+						while (i < vs.size()) {
+							++i;
+							if (vs[i] == "end") {
+								break;
+							}
+						}
+					}
+					else {
+						error("if statement was not closed!", input, data, data, false);
+					}
 				}
 			}
 		}
@@ -1018,7 +1114,7 @@ void compile(string input, string data) {
 			error("function has been called inavlidly", input, data, "(", false);
 			return;
 		}
-	}*/
+	}
 	//VARIABLES
 	else if (stringX::numOfStr(data, "=") > 0) {
 		vector<string> var;
@@ -1076,9 +1172,10 @@ int main()
 		cout << endl;
 		vector<string> ans;
 		stringX::splitString(input, ans, "\n");
-		for (auto & data : ans) {
+		for (int i = 0; i < ans.size(); i++) {
+			string data = ans[i];
 			rs(data);
-			compile(tinput, data);
+			compile(tinput, data, i);
 		}
 		cout << endl;
 		line++;
