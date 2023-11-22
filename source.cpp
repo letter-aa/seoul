@@ -627,34 +627,6 @@ bool boolcomp(string input, string data, vector<string>& var) {
 			rs(both);
 			afeq = both[0];
 			b4eq = both[1];
-			int strcheck = str(afeq, input, data);
-			if (strcheck == 0) {
-				if (stringX::isnum(afeq)) {
-					long long conv = strtoll(var[1].c_str(), nullptr, 10);
-					if (conv > INT64_MAX) {
-						error("number is too big! boolean comparison could not be run.", it, dt, var[1], false);
-						line++;
-					}
-				}
-				else {
-					error("malformed number or bool!", it, dt, var[1], false);
-					return false;
-				}
-			}
-			strcheck = str(b4eq, input, data);
-			if (strcheck == 0) {
-				if (stringX::isnum(b4eq)) {
-					long long conv = strtoll(var[1].c_str(), nullptr, 10);
-					if (conv > INT64_MAX) {
-						error("number is too big! boolean comparison could not be run.", it, dt, var[1], false);
-						line++;
-					}
-				}
-				else {
-					error("malformed number or bool!", it, dt, var[1], false);
-					return false;
-				}
-			}
 			if (afeq == "true") {
 				afeq = "1";
 			}
@@ -673,6 +645,34 @@ bool boolcomp(string input, string data, vector<string>& var) {
 			}
 			else {
 				var[1] = "false";
+			}
+			int strcheck = str(afeq, input, data);
+			if (strcheck == 0) {
+				if (stringX::isnum(afeq)) {
+					long long conv = strtoll(afeq.c_str(), nullptr, 10);
+					if (conv > INT64_MAX) {
+						error("number is too big! boolean comparison could not be run.", it, dt, var[1], false);
+						line++;
+					}
+				}
+				else {
+					error("malformed number or bool!", it, dt, var[1], false);
+					return false;
+				}
+			}
+			strcheck = str(b4eq, input, data);
+			if (strcheck == 0) {
+				if (stringX::isnum(b4eq)) {
+					long long conv = strtoll(b4eq.c_str(), nullptr, 10);
+					if (conv > INT64_MAX) {
+						error("number is too big! boolean comparison could not be run.", it, dt, var[1], false);
+						line++;
+					}
+				}
+				else {
+					error("malformed number or bool!", it, dt, var[1], false);
+					return false;
+				}
 			}
 		}
 		else if (int1 == false && int2 == false) {
@@ -717,6 +717,125 @@ bool boolcomp(string input, string data, vector<string>& var) {
 	}
 	else if (stringX::numOfStr(bcmp, "==") > 1) {
 		error("boolean comparison can only have one pair of equal symbols!", input, bcmp, "==", false);
+		return false;
+	} 
+	else if (stringX::numOfStr(bcmp, "!=") == 1) {
+		gsbas(bcmp, "!=", afeq, b4eq);
+		if (b4eq.find_first_not_of(" ") != string::npos) {
+			if (int1 == false) {
+				int1 = true;
+			}
+		}
+		if (afeq.find_first_not_of(" ") != string::npos) {
+			if (int2 == false) {
+				int2 = true;
+			}
+		}
+		if (int1 == true && int2 == true) {
+			//what to do if both comparisons are bool/int
+			vector<string> both = { afeq,b4eq };
+			rs(both);
+			afeq = both[0];
+			b4eq = both[1];
+			exfunc1(afeq);
+			exfunc1(b4eq);
+			string combine = afeq + " != " + b4eq;
+			bcmp = rsfbc(combine);
+			gsbas(bcmp, "!=", afeq, b4eq);
+			both = { afeq,b4eq };
+			rs(both);
+			afeq = both[0];
+			b4eq = both[1];
+			if (afeq == "true") {
+				afeq = "1";
+			}
+			else if (afeq == "false") {
+				afeq = "0";
+			}
+			if (b4eq == "true") {
+				b4eq = "1";
+			}
+			else if (b4eq == "false") {
+				b4eq = "0";
+			}
+
+			if (afeq != b4eq) {
+				var[1] = "true";
+			}
+			else {
+				var[1] = "false";
+			}
+			int strcheck = str(afeq, input, data);
+			if (strcheck == 0) {
+				if (stringX::isnum(afeq)) {
+					long long conv = strtoll(afeq.c_str(), nullptr, 10);
+					if (conv > INT64_MAX) {
+						error("number is too big! boolean comparison could not be run.", it, dt, var[1], false);
+						line++;
+					}
+				}
+				else {
+					error("malformed number or bool!", it, dt, var[1], false);
+					return false;
+				}
+			}
+			strcheck = str(b4eq, input, data);
+			if (strcheck == 0) {
+				if (stringX::isnum(b4eq)) {
+					long long conv = strtoll(b4eq.c_str(), nullptr, 10);
+					if (conv > INT64_MAX) {
+						error("number is too big! boolean comparison could not be run.", it, dt, var[1], false);
+						line++;
+					}
+				}
+				else {
+					error("malformed number or bool!", it, dt, var[1], false);
+					return false;
+				}
+			}
+		}
+		else if (int1 == false && int2 == false) {
+			gsbas(var[1], var[1].substr(qpos[1] + 1).find("!=") + qpos[1] + 1, var[1].substr(qpos[1] + 1).find("!=") + qpos[1] + 4, afeq, b4eq);
+			int prestr = str(afeq, input, data);
+			int prestr1 = str(b4eq, input, data);
+			if (prestr == -1 || prestr == 0 || prestr1 == -1 || prestr1 == 0) {
+				return false;
+			}
+			int strcheck = format(afeq, prestr);
+			int strcheck1 = format(b4eq, prestr1);
+			if (strcheck == 0 && strcheck1 == 0) {
+				if (strcomp.size() == 2) {
+					rc(strcomp[0]);
+					rc(strcomp[1]);
+					if (strcomp[0] != strcomp[1]) {
+						var[1] = "true";
+					}
+					else {
+						var[1] = "false";
+					}
+				}
+				else if (strcomp.size() > 2) {
+					error("critical error has occured while trying to process boolean comparison!", input, data, var[1], false);
+					return false;
+				}
+			}
+			else {
+				return false;
+			}
+		}
+		else {
+			if (qpos.size() > 0) {
+				error("cannot compare string by bool/int!", input, data, afeq, false);
+				return false;
+			}
+			else {
+				error("malformed number or bool!", input, data, "(", false);
+				return false;
+			}
+		}
+	}
+	else if (stringX::numOfStr(bcmp, "!=") > 1) {
+		error("boolean comparison can only have one not equal to symbol!", input, bcmp, "!=", false);
 		return false;
 	}
 	return true;
