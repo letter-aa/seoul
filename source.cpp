@@ -1167,6 +1167,29 @@ void compile(string input, string data, int & i) {
 			}
 			bool bc = boolcomp(input, data, b);
 			if (bc == false) {
+				int prei = i;
+				bool ifcomplete = false;
+				vector<string> vs;
+				stringX::splitString(input, vs, "\n");
+				if (vs.size() > 1) {
+					while (prei < vs.size()) {
+						++prei;
+						rs(vs[prei]);
+						if (vs[prei] == "end") {
+							ifcomplete = true;
+							break;
+						}
+					}
+					if (ifcomplete == false) {
+						error("if statement was not closed!", input, data, data, false);
+					}
+					while (i < vs.size()) {
+						++i;
+						if (vs[i] == "end") {
+							break;
+						}
+					}
+				}
 				return;
 			}
 			if (bc == true) {
